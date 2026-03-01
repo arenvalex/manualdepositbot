@@ -5,6 +5,7 @@ const token = process.env.TOKEN;
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbwwVLVDH4VJruc5d2gxZ9Z37E3bFBPIJ1_SSd6IbllgaxdrRodsI2mIJMPsh3GwHTI6/exec";
 
 const bot = new TelegramBot(token, { polling: true });
+
 let menuShown = {};
 let pendingDeposits = {};
 let dailyData = {};
@@ -13,12 +14,14 @@ let transactionId = 1;
 
 function getDateTime() {
     const now = new Date();
-    const date = now.toLocaleDateString("tr-TR");
-    const time = now.toLocaleTimeString("tr-TR");
-    return { date, time };
+    return {
+        date: now.toLocaleDateString("tr-TR"),
+        time: now.toLocaleTimeString("tr-TR")
+    };
 }
+
 function showMenu(chatId) {
-    bot.sendMessage(chatId, " ", {
+    bot.sendMessage(chatId, "📌 Manuel Deposit Aktif", {
         reply_markup: {
             keyboard: [
                 ["➕ Ekle", "📊 Özet"],
@@ -29,6 +32,7 @@ function showMenu(chatId) {
         }
     });
 }
+
 async function sendToSheet(data) {
     await fetch(SHEET_URL, {
         method: "POST",
@@ -37,6 +41,8 @@ async function sendToSheet(data) {
     });
 }
 
+/* ================== EKLE ================== */
+
 bot.onText(/\/ekle (.+) (.+)/, (msg, match) => {
     const chatId = msg.chat.id;
     const username = match[1];
@@ -44,7 +50,7 @@ bot.onText(/\/ekle (.+) (.+)/, (msg, match) => {
 
     pendingDeposits[chatId] = { username, amount };
 
-    const options = {
+    bot.sendMessage(chatId, "Saha seçin:", {
         reply_markup: {
             inline_keyboard: [
                 [{ text: "Şahin", callback_data: "Şahin" }],
@@ -59,15 +65,14 @@ bot.onText(/\/ekle (.+) (.+)/, (msg, match) => {
                 [{ text: "Easy", callback_data: "Easy" }]
             ]
         }
-    };
-
-    bot.sendMessage(chatId, "Saha seçin:", options);
+    });
 });
+
+/* ================== CALLBACK ================== */
 
 bot.on("callback_query", async (callbackQuery) => {
     const msg = callbackQuery.message;
     const chatId = msg.chat.id;
-
     const data = pendingDeposits[chatId];
     if (!data) return;
 
@@ -81,11 +86,7 @@ bot.on("callback_query", async (callbackQuery) => {
 
     const id = transactionId++;
 
-    transactions[id] = {
-        date,
-        provider,
-        amount: data.amount
-    };
+    transactions[id] = { date, provider, amount: data.amount };
 
     await sendToSheet({
         id,
@@ -101,11 +102,13 @@ bot.on("callback_query", async (callbackQuery) => {
 
     bot.sendMessage(
         chatId,
-        `#${id} | ${data.username} ${data.amount} TRY ${provider} sahasına eklendi ✅`
+        `#${id} | ${data.username} ${data.amount} TRY ${provider} eklendi ✅`
     );
 
     delete pendingDeposits[chatId];
 });
+
+/* ================== SIL ================== */
 
 bot.onText(/\/sil (.+)/, async (msg, match) => {
     const chatId = msg.chat.id;
@@ -132,15 +135,17 @@ bot.onText(/\/sil (.+)/, async (msg, match) => {
 
     delete transactions[id];
 
-    bot.sendMessage(chatId, `#${id} numaralı işlem silindi ❌`);
+    bot.sendMessage(chatId, `#${id} silindi ❌`);
 });
+
+/* ================== OZET ================== */
 
 bot.onText(/\/ozet/, (msg) => {
     const chatId = msg.chat.id;
     const today = new Date().toLocaleDateString("tr-TR");
 
     if (!dailyData[today]) {
-        return bot.sendMessage(chatId, "Bugün henüz manuel yatırım yok.");
+        return bot.sendMessage(chatId, "Bugün işlem yok.");
     }
 
     let text = `${today} Özeti:\n\n`;
@@ -156,8 +161,10 @@ bot.onText(/\/ozet/, (msg) => {
 
     bot.sendMessage(chatId, text);
 });
-bot.on("message", (msg) => {
 
+/* ================== MENU AUTO ================== */
+
+bot.on("message", (msg) => {
     if (!msg.text) return;
 
     const chatId = msg.chat.id;
@@ -168,7 +175,6 @@ bot.on("message", (msg) => {
     }
 
     if (msg.text.toLowerCase() === "menu") {
-        return showMenu(chatId);
+        showMenu(chatId);
     }
-
 });
