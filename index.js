@@ -6,11 +6,12 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbwwVLVDH4VJruc5d2gxZ9
 
 const bot = new TelegramBot(token, { polling: true });
 
-let menuShown = {};
 let pendingDeposits = {};
 let dailyData = {};
 let transactions = {};
 let transactionId = 1;
+
+/* ================= DATE ================= */
 
 function getDateTime() {
     const now = new Date();
@@ -20,18 +21,36 @@ function getDateTime() {
     };
 }
 
+/* ================= MENU ================= */
+
 function showMenu(chatId) {
-    bot.sendMessage(chatId, "📌 Manuel Deposit Aktif", {
+    bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
         reply_markup: {
-            keyboard: [
-                ["➕ Ekle", "📊 Özet"],
-                ["❌ Sil"]
-            ],
-            resize_keyboard: true,
-            one_time_keyboard: false
+            inline_keyboard: [
+                [
+                    {
+                        text: "➕ Ekle",
+                        switch_inline_query_current_chat: "/ekle "
+                    }
+                ],
+                [
+                    {
+                        text: "📊 Özet",
+                        switch_inline_query_current_chat: "/ozet"
+                    }
+                ],
+                [
+                    {
+                        text: "❌ Sil",
+                        switch_inline_query_current_chat: "/sil "
+                    }
+                ]
+            ]
         }
     });
 }
+
+/* ================= SHEET ================= */
 
 async function sendToSheet(data) {
     await fetch(SHEET_URL, {
@@ -41,14 +60,25 @@ async function sendToSheet(data) {
     });
 }
 
-/* ================== EKLE ================== */
+/* ================= START ================= */
+
+bot.onText(/\/start/, (msg) => {
+    showMenu(msg.chat.id);
+});
+
+/* ================= EKLE ================= */
 
 bot.onText(/\/ekle (.+) (.+)/, (msg, match) => {
+
     const chatId = msg.chat.id;
     const username = match[1];
     const amount = parseFloat(match[2]);
 
-    pendingDeposits[chatId] = { username, amount };
+    const operator = msg.from.username
+        ? "@" + msg.from.username
+        : msg.from.first_name;
+
+    pendingDeposits[chatId] = { username, amount, operator };
 
     bot.sendMessage(chatId, "Saha seçin:", {
         reply_markup: {
@@ -68,51 +98,65 @@ bot.onText(/\/ekle (.+) (.+)/, (msg, match) => {
     });
 });
 
-/* ================== CALLBACK ================== */
+/* ================= CALLBACK ================= */
 
-bot.on("callback_query", async (callbackQuery) => {
-    const msg = callbackQuery.message;
-    const chatId = msg.chat.id;
-    const data = pendingDeposits[chatId];
-    if (!data) return;
+bot.on("callback_query", async (query) => {
 
-    const provider = callbackQuery.data;
+    const chatId = query.message.chat.id;
+    const data = query.data;
+
+    const deposit = pendingDeposits[chatId];
+
+    if (!deposit) return;
+
+    const provider = data;
     const { date, time } = getDateTime();
 
     if (!dailyData[date]) dailyData[date] = {};
     if (!dailyData[date][provider]) dailyData[date][provider] = 0;
 
-    dailyData[date][provider] += data.amount;
+    dailyData[date][provider] += deposit.amount;
 
     const id = transactionId++;
 
-    transactions[id] = { date, provider, amount: data.amount };
+    transactions[id] = {
+        date,
+        provider,
+        amount: deposit.amount
+    };
 
     await sendToSheet({
         id,
         date,
         time,
-        username: data.username,
-        amount: data.amount,
+        username: deposit.username,
+        amount: deposit.amount,
         provider,
-        type: "EKLE"
+        type: "EKLE",
+        operator: deposit.operator
     });
 
-    bot.deleteMessage(chatId, msg.message_id);
+    bot.deleteMessage(chatId, query.message.message_id);
 
     bot.sendMessage(
         chatId,
-        `#${id} | ${data.username} ${data.amount} TRY ${provider} eklendi ✅`
+        `#${id} | ${deposit.username} ${deposit.amount} TRY ${provider} eklendi ✅
+Yapan: ${deposit.operator}`
     );
 
     delete pendingDeposits[chatId];
 });
 
-/* ================== SIL ================== */
+/* ================= SIL ================= */
 
 bot.onText(/\/sil (.+)/, async (msg, match) => {
+
     const chatId = msg.chat.id;
     const id = parseInt(match[1]);
+
+    const operator = msg.from.username
+        ? "@" + msg.from.username
+        : msg.from.first_name;
 
     if (!transactions[id]) {
         return bot.sendMessage(chatId, "İşlem bulunamadı.");
@@ -130,17 +174,23 @@ bot.onText(/\/sil (.+)/, async (msg, match) => {
         username: "-",
         amount: -amount,
         provider,
-        type: "SIL"
+        type: "SIL",
+        operator
     });
 
     delete transactions[id];
 
-    bot.sendMessage(chatId, `#${id} silindi ❌`);
+    bot.sendMessage(
+        chatId,
+        `#${id} silindi ❌
+Yapan: ${operator}`
+    );
 });
 
-/* ================== OZET ================== */
+/* ================= OZET ================= */
 
 bot.onText(/\/ozet/, (msg) => {
+
     const chatId = msg.chat.id;
     const today = new Date().toLocaleDateString("tr-TR");
 
@@ -160,21 +210,4 @@ bot.onText(/\/ozet/, (msg) => {
     text += `\nToplam: ${total} TRY`;
 
     bot.sendMessage(chatId, text);
-});
-
-/* ================== MENU AUTO ================== */
-
-bot.on("message", (msg) => {
-    if (!msg.text) return;
-
-    const chatId = msg.chat.id;
-
-    if (!menuShown[chatId]) {
-        showMenu(chatId);
-        menuShown[chatId] = true;
-    }
-
-    if (msg.text.toLowerCase() === "menu") {
-        showMenu(chatId);
-    }
 });
