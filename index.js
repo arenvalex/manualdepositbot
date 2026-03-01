@@ -5,7 +5,7 @@ const token = process.env.TOKEN;
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbwwVLVDH4VJruc5d2gxZ9Z37E3bFBPIJ1_SSd6IbllgaxdrRodsI2mIJMPsh3GwHTI6/exec";
 
 const bot = new TelegramBot(token, { polling: true });
-
+let menuShown = {};
 let pendingDeposits = {};
 let dailyData = {};
 let transactions = {};
@@ -16,18 +16,6 @@ function getDateTime() {
     const date = now.toLocaleDateString("tr-TR");
     const time = now.toLocaleTimeString("tr-TR");
     return { date, time };
-}
-function showMenu(chatId) {
-    bot.sendMessage(chatId, " ", {
-        reply_markup: {
-            keyboard: [
-                ["➕ Ekle", "📊 Özet"],
-                ["❌ Sil"]
-            ],
-            resize_keyboard: true,
-            one_time_keyboard: false
-        }
-    });
 }
 function showMenu(chatId) {
     bot.sendMessage(chatId, " ", {
@@ -169,11 +157,18 @@ bot.onText(/\/ozet/, (msg) => {
     bot.sendMessage(chatId, text);
 });
 bot.on("message", (msg) => {
+
     if (!msg.text) return;
 
     const chatId = msg.chat.id;
 
+    if (!menuShown[chatId]) {
+        showMenu(chatId);
+        menuShown[chatId] = true;
+    }
+
     if (msg.text.toLowerCase() === "menu") {
         return showMenu(chatId);
     }
+
 });
