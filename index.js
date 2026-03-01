@@ -85,7 +85,6 @@ bot.on("message", async (msg) => {
         );
 
         deleteAfter(chatId, sent.message_id);
-
         return;
     }
 
@@ -114,7 +113,6 @@ bot.on("message", async (msg) => {
 
         const sent = await bot.sendMessage(chatId, textMsg);
         deleteAfter(chatId, sent.message_id);
-
         return;
     }
 
@@ -127,7 +125,6 @@ bot.on("message", async (msg) => {
 
         const sent = await bot.sendMessage(chatId, "Silmek için ID yaz:");
         deleteAfter(chatId, sent.message_id);
-
         return;
     }
 
@@ -149,7 +146,6 @@ bot.on("message", async (msg) => {
                 : msg.from.first_name;
 
             pendingDeposits[chatId] = { username, amount, operator };
-
             waitingForInput[chatId] = false;
 
             const sent = await bot.sendMessage(chatId, "Saha seçin:", {
@@ -169,8 +165,8 @@ bot.on("message", async (msg) => {
                 }
             });
 
-            deleteAfter(chatId, sent.message_id);
-
+            // SAHA SEÇİM MESAJI 1 DK BEKLEMEZ, CALLBACK'DE ANINDA SİLİNECEK
+            return;
         } else {
             const sent = await bot.sendMessage(chatId,
                 "Format yanlış.\nÖrnek: test1 1500"
@@ -235,7 +231,8 @@ bot.on("callback_query", async (query) => {
     const chatId = query.message.chat.id;
     const provider = query.data;
 
-    deleteAfter(chatId, query.message.message_id);
+    // SAHA SEÇİM MESAJI ANINDA SİL
+    bot.deleteMessage(chatId, query.message.message_id).catch(() => {});
 
     const deposit = pendingDeposits[chatId];
     if (!deposit) return;
