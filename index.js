@@ -13,6 +13,14 @@ let dailyData = {};
 let transactions = {};
 let transactionId = 1;
 
+/* ================= DELETE AFTER ================= */
+
+function deleteAfter(chatId, messageId, seconds = 60) {
+    setTimeout(() => {
+        bot.deleteMessage(chatId, messageId).catch(() => {});
+    }, seconds * 1000);
+}
+
 /* ================= DATE ================= */
 
 function getDateTime() {
@@ -63,20 +71,34 @@ bot.on("message", async (msg) => {
 
     if (!text) return;
 
-    /* MENU BUTTONS */
+    /* ===== MENU BUTTONS ===== */
 
     if (text === "➕ Ekle") {
+
+        deleteAfter(chatId, msg.message_id);
+
         waitingForInput[chatId] = true;
         waitingForDelete[chatId] = false;
-        return bot.sendMessage(chatId, "Kullanıcı ve tutar yaz:\nÖrnek: test1 1500");
+
+        const sent = await bot.sendMessage(chatId,
+            "Kullanıcı ve tutar yaz:\nÖrnek: test1 1500"
+        );
+
+        deleteAfter(chatId, sent.message_id);
+
+        return;
     }
 
     if (text === "📊 Özet") {
 
+        deleteAfter(chatId, msg.message_id);
+
         const today = new Date().toLocaleDateString("tr-TR");
 
         if (!dailyData[today]) {
-            return bot.sendMessage(chatId, "Bugün işlem yok.");
+            const sent = await bot.sendMessage(chatId, "Bugün işlem yok.");
+            deleteAfter(chatId, sent.message_id);
+            return;
         }
 
         let textMsg = `${today} Özeti:\n\n`;
@@ -90,18 +112,30 @@ bot.on("message", async (msg) => {
 
         textMsg += `\nToplam: ${total} TRY`;
 
-        return bot.sendMessage(chatId, textMsg);
+        const sent = await bot.sendMessage(chatId, textMsg);
+        deleteAfter(chatId, sent.message_id);
+
+        return;
     }
 
     if (text === "❌ Sil") {
+
+        deleteAfter(chatId, msg.message_id);
+
         waitingForDelete[chatId] = true;
         waitingForInput[chatId] = false;
-        return bot.sendMessage(chatId, "Silmek için ID yaz:");
+
+        const sent = await bot.sendMessage(chatId, "Silmek için ID yaz:");
+        deleteAfter(chatId, sent.message_id);
+
+        return;
     }
 
-    /* DEPOSIT INPUT */
+    /* ===== DEPOSIT INPUT ===== */
 
     if (waitingForInput[chatId]) {
+
+        deleteAfter(chatId, msg.message_id);
 
         const parts = text.trim().split(" ");
 
@@ -118,7 +152,7 @@ bot.on("message", async (msg) => {
 
             waitingForInput[chatId] = false;
 
-            return bot.sendMessage(chatId, "Saha seçin:", {
+            const sent = await bot.sendMessage(chatId, "Saha seçin:", {
                 reply_markup: {
                     inline_keyboard: [
                         [{ text: "Şahin", callback_data: "Şahin" }],
@@ -134,19 +168,31 @@ bot.on("message", async (msg) => {
                     ]
                 }
             });
+
+            deleteAfter(chatId, sent.message_id);
+
         } else {
-            return bot.sendMessage(chatId, "Format yanlış.\nÖrnek: test1 1500");
+            const sent = await bot.sendMessage(chatId,
+                "Format yanlış.\nÖrnek: test1 1500"
+            );
+            deleteAfter(chatId, sent.message_id);
         }
+
+        return;
     }
 
-    /* DELETE INPUT */
+    /* ===== DELETE INPUT ===== */
 
     if (waitingForDelete[chatId]) {
+
+        deleteAfter(chatId, msg.message_id);
 
         const id = parseInt(text);
 
         if (!transactions[id]) {
-            return bot.sendMessage(chatId, "İşlem bulunamadı.");
+            const sent = await bot.sendMessage(chatId, "İşlem bulunamadı.");
+            deleteAfter(chatId, sent.message_id);
+            return;
         }
 
         const { date, provider, amount } = transactions[id];
@@ -172,19 +218,24 @@ bot.on("message", async (msg) => {
         delete transactions[id];
         waitingForDelete[chatId] = false;
 
-        return bot.sendMessage(chatId,
+        await bot.sendMessage(
+            chatId,
             `#${id} silindi ❌\nEkleyen: ${operator}`
         );
+
+        return;
     }
 
 });
 
-/* ================= CALLBACK (PROVIDER SELECT) ================= */
+/* ================= PROVIDER SELECT ================= */
 
 bot.on("callback_query", async (query) => {
 
     const chatId = query.message.chat.id;
     const provider = query.data;
+
+    deleteAfter(chatId, query.message.message_id);
 
     const deposit = pendingDeposits[chatId];
     if (!deposit) return;
@@ -215,9 +266,7 @@ bot.on("callback_query", async (query) => {
         operator: deposit.operator
     });
 
-    bot.deleteMessage(chatId, query.message.message_id);
-
-    bot.sendMessage(
+    await bot.sendMessage(
         chatId,
         `#${id} | ${deposit.username} ${deposit.amount} TRY ${provider} eklendi ✅
 Ekleyen: ${deposit.operator}`
