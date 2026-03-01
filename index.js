@@ -6,6 +6,7 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbwwVLVDH4VJruc5d2gxZ9
 
 const bot = new TelegramBot(token, { polling: true });
 
+let waitingForInput = {};
 let pendingDeposits = {};
 let dailyData = {};
 let transactions = {};
@@ -27,24 +28,9 @@ function showMenu(chatId) {
     bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
         reply_markup: {
             inline_keyboard: [
-                [
-                    {
-                        text: "➕ Ekle",
-                        switch_inline_query_current_chat: "/ekle "
-                    }
-                ],
-                [
-                    {
-                        text: "📊 Özet",
-                        switch_inline_query_current_chat: "/ozet"
-                    }
-                ],
-                [
-                    {
-                        text: "❌ Sil",
-                        switch_inline_query_current_chat: "/sil "
-                    }
-                ]
+                [{ text: "➕ Ekle", callback_data: "menu_ekle" }],
+                [{ text: "📊 Özet", callback_data: "menu_ozet" }],
+                [{ text: "❌ Sil", callback_data: "menu_sil" }]
             ]
         }
     });
@@ -66,38 +52,6 @@ bot.onText(/\/start/, (msg) => {
     showMenu(msg.chat.id);
 });
 
-/* ================= EKLE ================= */
-
-bot.onText(/\/ekle (.+) (.+)/, (msg, match) => {
-
-    const chatId = msg.chat.id;
-    const username = match[1];
-    const amount = parseFloat(match[2]);
-
-    const operator = msg.from.username
-        ? "@" + msg.from.username
-        : msg.from.first_name;
-
-    pendingDeposits[chatId] = { username, amount, operator };
-
-    bot.sendMessage(chatId, "Saha seçin:", {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "Şahin", callback_data: "Şahin" }],
-                [{ text: "Jorpay", callback_data: "Jorpay" }],
-                [{ text: "Master", callback_data: "Master" }],
-                [{ text: "Karahan", callback_data: "Karahan" }],
-                [{ text: "Tiktak", callback_data: "Tiktak" }],
-                [{ text: "Ezel", callback_data: "Ezel" }],
-                [{ text: "Bizans", callback_data: "Bizans" }],
-                [{ text: "Güvenli QR", callback_data: "Güvenli QR" }],
-                [{ text: "Cryptobox", callback_data: "Cryptobox" }],
-                [{ text: "Easy", callback_data: "Easy" }]
-            ]
-        }
-    });
-});
-
 /* ================= CALLBACK ================= */
 
 bot.on("callback_query", async (query) => {
@@ -105,8 +59,42 @@ bot.on("callback_query", async (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
 
-    const deposit = pendingDeposits[chatId];
+    /* ===== MENU BUTTONS ===== */
 
+    if (data === "menu_ekle") {
+        waitingForInput[chatId] = true;
+        return bot.sendMessage(chatId, "Kullanıcı ve tutar yaz:\nÖrnek: test1 1500");
+    }
+
+    if (data === "menu_ozet") {
+
+        const today = new Date().toLocaleDateString("tr-TR");
+
+        if (!dailyData[today]) {
+            return bot.sendMessage(chatId, "Bugün işlem yok.");
+        }
+
+        let text = `${today} Özeti:\n\n`;
+        let total = 0;
+
+        for (let provider in dailyData[today]) {
+            const amount = dailyData[today][provider];
+            total += amount;
+            text += `${provider}: ${amount} TRY\n`;
+        }
+
+        text += `\nToplam: ${total} TRY`;
+
+        return bot.sendMessage(chatId, text);
+    }
+
+    if (data === "menu_sil") {
+        return bot.sendMessage(chatId, "Silmek için ID yaz:\nÖrnek: 3");
+    }
+
+    /* ===== PROVIDER SELECTION ===== */
+
+    const deposit = pendingDeposits[chatId];
     if (!deposit) return;
 
     const provider = data;
@@ -141,73 +129,58 @@ bot.on("callback_query", async (query) => {
     bot.sendMessage(
         chatId,
         `#${id} | ${deposit.username} ${deposit.amount} TRY ${provider} eklendi ✅
-Yapan: ${deposit.operator}`
+Ekleyen: ${deposit.operator}`
     );
 
     delete pendingDeposits[chatId];
 });
 
-/* ================= SIL ================= */
+/* ================= MESSAGE HANDLER ================= */
 
-bot.onText(/\/sil (.+)/, async (msg, match) => {
-
-    const chatId = msg.chat.id;
-    const id = parseInt(match[1]);
-
-    const operator = msg.from.username
-        ? "@" + msg.from.username
-        : msg.from.first_name;
-
-    if (!transactions[id]) {
-        return bot.sendMessage(chatId, "İşlem bulunamadı.");
-    }
-
-    const { date, provider, amount } = transactions[id];
-    const { time } = getDateTime();
-
-    dailyData[date][provider] -= amount;
-
-    await sendToSheet({
-        id,
-        date,
-        time,
-        username: "-",
-        amount: -amount,
-        provider,
-        type: "SIL",
-        operator
-    });
-
-    delete transactions[id];
-
-    bot.sendMessage(
-        chatId,
-        `#${id} silindi ❌
-Yapan: ${operator}`
-    );
-});
-
-/* ================= OZET ================= */
-
-bot.onText(/\/ozet/, (msg) => {
+bot.on("message", (msg) => {
 
     const chatId = msg.chat.id;
-    const today = new Date().toLocaleDateString("tr-TR");
 
-    if (!dailyData[today]) {
-        return bot.sendMessage(chatId, "Bugün işlem yok.");
+    if (!msg.text) return;
+
+    /* Kullanıcı tutar giriş bekleniyorsa */
+
+    if (waitingForInput[chatId]) {
+
+        const parts = msg.text.trim().split(" ");
+
+        if (parts.length === 2 && !isNaN(parts[1])) {
+
+            const username = parts[0];
+            const amount = parseFloat(parts[1]);
+
+            const operator = msg.from.username
+                ? "@" + msg.from.username
+                : msg.from.first_name;
+
+            pendingDeposits[chatId] = { username, amount, operator };
+
+            waitingForInput[chatId] = false;
+
+            return bot.sendMessage(chatId, "Saha seçin:", {
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: "Şahin", callback_data: "Şahin" }],
+                        [{ text: "Jorpay", callback_data: "Jorpay" }],
+                        [{ text: "Master", callback_data: "Master" }],
+                        [{ text: "Karahan", callback_data: "Karahan" }],
+                        [{ text: "Tiktak", callback_data: "Tiktak" }],
+                        [{ text: "Ezel", callback_data: "Ezel" }],
+                        [{ text: "Bizans", callback_data: "Bizans" }],
+                        [{ text: "Güvenli QR", callback_data: "Güvenli QR" }],
+                        [{ text: "Cryptobox", callback_data: "Cryptobox" }],
+                        [{ text: "Easy", callback_data: "Easy" }]
+                    ]
+                }
+            });
+        }
+        else {
+            return bot.sendMessage(chatId, "Format yanlış.\nÖrnek: test1 1500");
+        }
     }
-
-    let text = `${today} Özeti:\n\n`;
-    let total = 0;
-
-    for (let provider in dailyData[today]) {
-        const amount = dailyData[today][provider];
-        total += amount;
-        text += `${provider}: ${amount} TRY\n`;
-    }
-
-    text += `\nToplam: ${total} TRY`;
-
-    bot.sendMessage(chatId, text);
 });
