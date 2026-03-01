@@ -17,7 +17,30 @@ function getDateTime() {
     const time = now.toLocaleTimeString("tr-TR");
     return { date, time };
 }
-
+function showMenu(chatId) {
+    bot.sendMessage(chatId, " ", {
+        reply_markup: {
+            keyboard: [
+                ["➕ Ekle", "📊 Özet"],
+                ["❌ Sil"]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false
+        }
+    });
+}
+function showMenu(chatId) {
+    bot.sendMessage(chatId, " ", {
+        reply_markup: {
+            keyboard: [
+                ["➕ Ekle", "📊 Özet"],
+                ["❌ Sil"]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false
+        }
+    });
+}
 async function sendToSheet(data) {
     await fetch(SHEET_URL, {
         method: "POST",
@@ -144,4 +167,13 @@ bot.onText(/\/ozet/, (msg) => {
     text += `\nToplam: ${total} TRY`;
 
     bot.sendMessage(chatId, text);
+});
+bot.on("message", (msg) => {
+    if (!msg.text) return;
+
+    const chatId = msg.chat.id;
+
+    if (msg.text.toLowerCase() === "menu") {
+        return showMenu(chatId);
+    }
 });
