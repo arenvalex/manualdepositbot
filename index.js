@@ -12,6 +12,7 @@ let pendingDeposits = {};
 let transactions = {};
 let dailyData = {};
 let transactionId = 1;
+let errorCount = {};
 
 /* ================= ISTANBUL DATE ================= */
 
@@ -80,6 +81,7 @@ bot.on("message", async (msg) => {
     if (text === "➕ Ekle") {
         waitingForInput[chatId] = true;
         waitingForDelete[chatId] = false;
+        errorCount[chatId] = 0;
 
         bot.sendMessage(chatId, "Kullanıcı + tutar yaz.\nörnek: test1 1500");
         return;
@@ -124,11 +126,24 @@ bot.on("message", async (msg) => {
         const parts = text.trim().split(" ");
 
         if (parts.length !== 2 || isNaN(parts[1])) {
-            bot.sendMessage(chatId,
-                "Lan napıyon :D\nFormat yanlış.\n\nörnek: test1 1500\n\nBir de iki işlem yapıcaksın onu da yanlış girme ya :D"
-            );
-            return;
+
+            if (!errorCount[chatId]) {
+                errorCount[chatId] = 1;
+
+                bot.sendMessage(chatId,
+                    "Lan napıyon :D\nFormat yanlış.\n\nörnek: test1 1500\n\nBir de iki işlem yapıcaksın onu da yanlış girme ya :D"
+                );
+
+                return;
+            } else {
+                bot.sendMessage(chatId, "İşlem iptal edildi. Baştan başla.");
+                waitingForInput[chatId] = false;
+                errorCount[chatId] = 0;
+                return;
+            }
         }
+
+        errorCount[chatId] = 0;
 
         const username = parts[0];
         const amount = parseFloat(parts[1]);
