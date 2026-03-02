@@ -8,21 +8,34 @@ const bot = new TelegramBot(token, { polling: true });
 
 let waitingForInput = {};
 let waitingForDelete = {};
-let pendingDeposits = {};
 let dailyData = {};
 let transactions = {};
 let transactionId = 1;
 let errorCount = {};
 
-/* ✅ SADECE BU 2 KİŞİ KULLANABİLİR */
+/* ✅ SADECE BU 2 KİŞİ */
 const allowedUsers = [
     8467771210,
     5340962409
 ];
 
-/* ✅ GRUP ADINDAN OTOMATİK SAHA EŞLEŞME */
+/* ✅ TÜRKÇE KARAKTER TEMİZLEYİCİ */
+function normalizeText(text) {
+    return text
+        .toLowerCase()
+        .replace(/ı/g, "i")
+        .replace(/ğ/g, "g")
+        .replace(/ü/g, "u")
+        .replace(/ş/g, "s")
+        .replace(/ö/g, "o")
+        .replace(/ç/g, "c")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+/* ✅ SAHA MAP */
 const providerMap = {
-    "şahin": "Şahin",
+    "sahin": "Şahin",
     "jorpay": "Jorpay",
     "master": "Master",
     "karahan": "Karahan",
@@ -32,7 +45,7 @@ const providerMap = {
     "garanti": "Garanti QR",
     "cryptobox": "Cryptobox",
     "easy": "Easy",
-    "manuel yatırım excel bot": "Manuel Test"
+    "manuel": "Manuel Test"
 };
 
 /* ================= DELETE AFTER ================= */
@@ -74,8 +87,7 @@ function showMenu(chatId) {
                 ["➕ Ekle", "📊 Özet"],
                 ["❌ Sil"]
             ],
-            resize_keyboard: true,
-            one_time_keyboard: false
+            resize_keyboard: true
         }
     });
 }
@@ -116,8 +128,6 @@ bot.on("message", async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
     if (!text) return;
-
-    /* ===== MENU ===== */
 
     if (text === "➕ Ekle") {
 
@@ -219,8 +229,9 @@ bot.on("message", async (msg) => {
             ? "@" + msg.from.username
             : msg.from.first_name;
 
-        /* ✅ OTOMATİK SAHA ALGILAMA */
-        const groupName = (msg.chat.title || "").toLowerCase();
+        /* 🔥 SAHA ALGILAMA (STABİL) */
+        const rawGroupName = msg.chat.title || "";
+        const groupName = normalizeText(rawGroupName);
 
         let provider = null;
 
