@@ -20,6 +20,21 @@ const allowedUsers = [
     5340962409
 ];
 
+/* ✅ GRUP ADINDAN OTOMATİK SAHA EŞLEŞME */
+const providerMap = {
+    "şahin": "Şahin",
+    "jorpay": "Jorpay",
+    "master": "Master",
+    "karahan": "Karahan",
+    "tiktak": "Tiktak",
+    "ezel": "Ezel",
+    "bizans": "Bizans",
+    "garanti": "Garanti QR",
+    "cryptobox": "Cryptobox",
+    "easy": "Easy",
+    "manuel yatırım excel bot": "Manuel Test"
+};
+
 /* ================= DELETE AFTER ================= */
 
 function deleteAfter(chatId, messageId, seconds = 60) {
@@ -204,26 +219,58 @@ bot.on("message", async (msg) => {
             ? "@" + msg.from.username
             : msg.from.first_name;
 
-        pendingDeposits[chatId] = { username, amount, operator };
-        waitingForInput[chatId] = false;
+        /* ✅ OTOMATİK SAHA ALGILAMA */
+        const groupName = (msg.chat.title || "").toLowerCase();
 
-        await bot.sendMessage(chatId, "Saha seçin:", {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: "Şahin", callback_data: "Şahin" }],
-                    [{ text: "Jorpay", callback_data: "Jorpay" }],
-                    [{ text: "Master", callback_data: "Master" }],
-                    [{ text: "Karahan", callback_data: "Karahan" }],
-                    [{ text: "Tiktak", callback_data: "Tiktak" }],
-                    [{ text: "Ezel", callback_data: "Ezel" }],
-                    [{ text: "Bizans", callback_data: "Bizans" }],
-                    [{ text: "Güvenli QR", callback_data: "Güvenli QR" }],
-                    [{ text: "Cryptobox", callback_data: "Cryptobox" }],
-                    [{ text: "Easy", callback_data: "Easy" }]
-                ]
+        let provider = null;
+
+        for (let key in providerMap) {
+            if (groupName.includes(key)) {
+                provider = providerMap[key];
+                break;
             }
+        }
+
+        if (!provider) {
+            const sent = await bot.sendMessage(chatId, "Bu grup için saha eşleşmesi bulunamadı.");
+            deleteAfter(chatId, sent.message_id);
+            return;
+        }
+
+        const { date, time } = getDateTime();
+
+        if (!dailyData[date]) dailyData[date] = {};
+        if (!dailyData[date][provider]) dailyData[date][provider] = 0;
+
+        dailyData[date][provider] += amount;
+
+        const id = transactionId++;
+
+        transactions[id] = {
+            date,
+            provider,
+            amount
+        };
+
+        await sendToSheet({
+            id,
+            date,
+            time,
+            username,
+            amount,
+            provider,
+            type: "EKLE",
+            operator
         });
 
+        const sent = await bot.sendMessage(
+            chatId,
+            `#${id} | ${username} ${amount} TRY ${provider} eklendi ✅\nEkleyen: ${operator}`
+        );
+
+        deleteAfter(chatId, sent.message_id);
+
+        waitingForInput[chatId] = false;
         return;
     }
 
@@ -264,63 +311,13 @@ bot.on("message", async (msg) => {
         delete transactions[id];
         waitingForDelete[chatId] = false;
 
-        await bot.sendMessage(
+        const sent = await bot.sendMessage(
             chatId,
             `#${id} silindi ❌\nEkleyen: ${operator}`
         );
 
+        deleteAfter(chatId, sent.message_id);
         return;
     }
 
-});
-
-/* ================= PROVIDER SELECT ================= */
-
-bot.on("callback_query", async (query) => {
-
-    if (!allowedUsers.includes(query.from.id)) {
-        bot.answerCallbackQuery(query.id, { text: "Yetkisiz işlem.", show_alert: true });
-        return;
-    }
-
-    const chatId = query.message.chat.id;
-    const provider = query.data;
-
-    bot.deleteMessage(chatId, query.message.message_id).catch(() => {});
-
-    const deposit = pendingDeposits[chatId];
-    if (!deposit) return;
-
-    const { date, time } = getDateTime();
-
-    if (!dailyData[date]) dailyData[date] = {};
-    if (!dailyData[date][provider]) dailyData[date][provider] = 0;
-
-    dailyData[date][provider] += deposit.amount;
-
-    const id = transactionId++;
-
-    transactions[id] = {
-        date,
-        provider,
-        amount: deposit.amount
-    };
-
-    await sendToSheet({
-        id,
-        date,
-        time,
-        username: deposit.username,
-        amount: deposit.amount,
-        provider,
-        type: "EKLE",
-        operator: deposit.operator
-    });
-
-    await bot.sendMessage(
-        chatId,
-        `#${id} | ${deposit.username} ${deposit.amount} TRY ${provider} eklendi ✅\nEkleyen: ${deposit.operator}`
-    );
-
-    delete pendingDeposits[chatId];
 });
