@@ -14,6 +14,12 @@ let transactions = {};
 let transactionId = 1;
 let errorCount = {};
 
+/* ✅ SADECE BU 2 KİŞİ KULLANABİLİR */
+const allowedUsers = [
+    8467771210,
+    5340962409
+];
+
 /* ================= DELETE AFTER ================= */
 
 function deleteAfter(chatId, messageId, seconds = 60) {
@@ -76,12 +82,17 @@ async function sendToSheet(data) {
 /* ================= START ================= */
 
 bot.onText(/\/start/, (msg) => {
+    if (!allowedUsers.includes(msg.from.id)) return;
     showMenu(msg.chat.id);
 });
 
 /* ================= MESSAGE HANDLER ================= */
 
 bot.on("message", async (msg) => {
+
+    if (!allowedUsers.includes(msg.from.id)) {
+        return;
+    }
 
     const chatId = msg.chat.id;
     const text = msg.text;
@@ -262,6 +273,8 @@ bot.on("message", async (msg) => {
 /* ================= PROVIDER SELECT ================= */
 
 bot.on("callback_query", async (query) => {
+
+    if (!allowedUsers.includes(query.from.id)) return;
 
     const chatId = query.message.chat.id;
     const provider = query.data;
