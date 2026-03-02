@@ -207,7 +207,7 @@ bot.on("message", async (msg) => {
         return;
     }
 
- /* ===== DELETE INPUT ===== */
+/* ===== DELETE INPUT ===== */
 
 if (waitingForDelete[chatId]) {
 
@@ -218,24 +218,32 @@ if (waitingForDelete[chatId]) {
 
     const id = parseInt(text);
 
-    // Excel'den sil (gerçek kaynak)
+    // Excel'den sil
     await sendToSheet({
         action: "DELETE",
         id: id
     });
 
-    // RAM'den sil (varsa tüm günlerden temizle)
-    for (let d in dailyTransactions) {
-        dailyTransactions[d] =
-            dailyTransactions[d].filter(t => t.id !== id);
+    // RAM'den tüm günlerden sil
+    for (let date in dailyTransactions) {
+        dailyTransactions[date] =
+            dailyTransactions[date].filter(t => t.id !== id);
     }
 
-    // Günlük toplamları da düzelt
-    for (let d in dailyData) {
-        for (let provider in dailyData[d]) {
-            const tx = dailyTransactions[d]?.find(t => t.id === id);
-            if (!tx) continue;
-            dailyData[d][provider] -= tx.amount;
+    // Günlük toplamları yeniden hesapla
+    for (let date in dailyData) {
+        for (let provider in dailyData[date]) {
+            let newTotal = 0;
+
+            if (dailyTransactions[date]) {
+                dailyTransactions[date]
+                    .filter(t => t.provider === provider)
+                    .forEach(t => {
+                        newTotal += t.amount;
+                    });
+            }
+
+            dailyData[date][provider] = newTotal;
         }
     }
 
@@ -244,7 +252,6 @@ if (waitingForDelete[chatId]) {
     waitingForDelete[chatId] = false;
     return;
 }
-
     /* ===== DEPOSIT ===== */
 
     if (waitingForInput[chatId]) {
