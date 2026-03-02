@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
 
 const token = process.env.TOKEN;
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbyU6eUJ0hDfMoaP9RN9oalvCjh6Y-fA59o3l2UKpSwqqgz52o42bDNTfslvpZ6WOwH_/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbw5v5BD_g39znoB_9AvPb-NKPw8sq56sb6H5zorA933uioStPiX0ie_CzFerHznyjI/exec";
 
 const bot = new TelegramBot(token, { polling: true });
 
