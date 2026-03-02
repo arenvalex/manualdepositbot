@@ -143,8 +143,7 @@ bot.on("message", async (msg) => {
     if (!msg.text) return;
 
     if (!allowedUsers.includes(msg.from.id)) {
-        bot.sendMessage(msg.chat.id, "Yetkisiz işlem.");
-        return;
+        return; // Sessiz ignore
     }
 
     const chatId = msg.chat.id;
@@ -168,7 +167,7 @@ bot.on("message", async (msg) => {
 
         return;
     }
-
+    
     /* ===== ÖZET ===== */
 
     if (text === "📊 Özet") {
