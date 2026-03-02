@@ -14,10 +14,11 @@ let transactions = {};
 let transactionId = 1;
 let errorCount = {};
 
-/* ✅ WHITELIST */
+/* ✅ WHITELIST (GÜNCELLENDİ) */
 const allowedUsers = [
     8467771210,
-    5340962409
+    5340962409,
+    1382439300
 ];
 
 /* ✅ TÜRKÇE NORMALIZE */
@@ -125,7 +126,16 @@ bot.on("message", async (msg) => {
     if (text === "➕ Ekle") {
         waitingForInput[chatId] = true;
         errorCount[chatId] = 0;
-        bot.sendMessage(chatId, "Kullanıcı ve tutar yaz:\nörnek: test1 1500");
+
+        const sent = await bot.sendMessage(
+            chatId,
+            "Kullanıcı ve tutar yaz:\nörnek: test1 1500"
+        );
+
+        setTimeout(() => {
+            bot.deleteMessage(chatId, sent.message_id).catch(() => {});
+        }, 20000);
+
         return;
     }
 
@@ -182,9 +192,7 @@ bot.on("message", async (msg) => {
 
             if (!errorCount[chatId]) {
                 errorCount[chatId] = 1;
-                bot.sendMessage(chatId,
-                    "Lan napıyon :D\nFormat yanlış.\n\nörnek: test1 1500\n\nBir de iki işlem yapıcaksın onu da yanlış girme ya :D"
-                );
+                bot.sendMessage(chatId, "Hatalı işlem, tekrar dene!");
                 return;
             } else {
                 bot.sendMessage(chatId, "İşlem iptal edildi.");
@@ -254,7 +262,8 @@ bot.on("message", async (msg) => {
 
         await bot.deleteMessage(chatId, msg.message_id).catch(() => {});
 
-        bot.sendMessage(chatId,
+        bot.sendMessage(
+            chatId,
             `#${id} | ${username} ${amount} TRY ${provider} eklendi ✅`
         );
 
