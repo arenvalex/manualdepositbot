@@ -69,6 +69,21 @@ function getDateTime() {
     return { date, time };
 }
 
+/* ================= MENU ================= */
+
+function showMenu(chatId) {
+    bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
+        reply_markup: {
+            keyboard: [
+                ["➕ Ekle", "📊 Özet"],
+                ["❌ Sil"]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false
+        }
+    });
+}
+
 /* ================= SHEET ================= */
 
 async function sendToSheet(data) {
@@ -90,10 +105,7 @@ bot.onText(/\/start/, (msg) => {
         bot.sendMessage(msg.chat.id, "Yetkisiz işlem.");
         return;
     }
-
-    bot.sendMessage(msg.chat.id,
-        "➕ Ekle yazarak işlem başlat.\n📊 Özet yazarak rapor al.\n❌ Sil yazarak işlem sil."
-    );
+    showMenu(msg.chat.id);
 });
 
 /* ================= MESSAGE ================= */
@@ -110,8 +122,6 @@ bot.on("message", async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
-    /* ===== EKLE ===== */
-
     if (text === "➕ Ekle") {
         waitingForInput[chatId] = true;
         errorCount[chatId] = 0;
@@ -119,15 +129,12 @@ bot.on("message", async (msg) => {
         return;
     }
 
-    /* ===== ÖZET (SADECE O GRUP) ===== */
-
     if (text === "📊 Özet") {
 
         const { date } = getDateTime();
         const groupName = normalizeText(msg.chat.title || "");
 
         let provider = null;
-
         for (let key in providerMap) {
             if (groupName.includes(key)) {
                 provider = providerMap[key];
@@ -158,8 +165,6 @@ bot.on("message", async (msg) => {
         bot.sendMessage(chatId, summary);
         return;
     }
-
-    /* ===== SİL ===== */
 
     if (text === "❌ Sil") {
         waitingForDelete[chatId] = true;
@@ -201,7 +206,6 @@ bot.on("message", async (msg) => {
         const groupName = normalizeText(msg.chat.title || "");
 
         let provider = null;
-
         for (let key in providerMap) {
             if (groupName.includes(key)) {
                 provider = providerMap[key];
@@ -248,7 +252,6 @@ bot.on("message", async (msg) => {
             operator
         });
 
-        /* SADECE İŞLEM MESAJINI SİL */
         await bot.deleteMessage(chatId, msg.message_id).catch(() => {});
 
         bot.sendMessage(chatId,
@@ -259,7 +262,7 @@ bot.on("message", async (msg) => {
         return;
     }
 
-    /* ===== DELETE INPUT ===== */
+    /* ===== DELETE ===== */
 
     if (waitingForDelete[chatId]) {
 
