@@ -217,35 +217,26 @@ if (waitingForDelete[chatId]) {
     }
 
     const id = parseInt(text);
-    const { date } = getDateTime();
 
-    let deletedTransaction = null;
-
-    // RAM'de ara (bugünkü işlemler içinde)
-    if (dailyTransactions[date]) {
-        deletedTransaction = dailyTransactions[date].find(t => t.id === id);
-    }
-
-    // Eğer RAM'de yoksa kullanıcıyı bilgilendir
-    if (!deletedTransaction) {
-        bot.sendMessage(chatId, "İşlem bulunamadı.");
-        waitingForDelete[chatId] = false;
-        return;
-    }
-
-    // Excel'den sil
+    // Excel'den sil (gerçek kaynak)
     await sendToSheet({
         action: "DELETE",
         id: id
     });
 
-    // RAM'den sil
-    dailyTransactions[date] =
-        dailyTransactions[date].filter(t => t.id !== id);
+    // RAM'den sil (varsa tüm günlerden temizle)
+    for (let d in dailyTransactions) {
+        dailyTransactions[d] =
+            dailyTransactions[d].filter(t => t.id !== id);
+    }
 
-    // Günlük toplamdan düş
-    if (dailyData[date] && dailyData[date][deletedTransaction.provider]) {
-        dailyData[date][deletedTransaction.provider] -= deletedTransaction.amount;
+    // Günlük toplamları da düzelt
+    for (let d in dailyData) {
+        for (let provider in dailyData[d]) {
+            const tx = dailyTransactions[d]?.find(t => t.id === id);
+            if (!tx) continue;
+            dailyData[d][provider] -= tx.amount;
+        }
     }
 
     bot.sendMessage(chatId, `#${id} silindi ❌`);
