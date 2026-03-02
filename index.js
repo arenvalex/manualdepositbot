@@ -10,7 +10,6 @@ let waitingForInput = {};
 let waitingForDelete = {};
 let dailyData = {};
 let dailyTransactions = {};
-let transactions = {};
 let errorCount = {};
 
 /* ✅ WHITELIST */
@@ -19,30 +18,6 @@ const allowedUsers = [
     5340962409,
     1382439300
 ];
-
-/* ================= ID EXCELDEN ================= */
-
-async function getNextId() {
-    try {
-        const response = await fetch(SHEET_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "GET_NEXT_ID" })
-        });
-
-        const data = await response.json();
-
-        if (!data.id || isNaN(data.id)) {
-            return 1;
-        }
-
-        return data.id;
-
-    } catch (err) {
-        console.log("ID fetch error:", err);
-        return 1;
-    }
-}
 
 /* ================= TÜRKÇE NORMALIZE ================= */
 
@@ -95,19 +70,31 @@ function getDateTime() {
     return { date, time };
 }
 
-/* ================= MENU ================= */
+/* ================= GÜNLÜK ID EXCELDEN ================= */
 
-function showMenu(chatId) {
-    bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
-        reply_markup: {
-            keyboard: [
-                ["➕ Ekle", "📊 Özet"],
-                ["❌ Sil"]
-            ],
-            resize_keyboard: true,
-            one_time_keyboard: false
+async function getNextId(date) {
+    try {
+        const response = await fetch(SHEET_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "GET_NEXT_ID",
+                date: date
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.id || isNaN(data.id)) {
+            return 1;
         }
-    });
+
+        return data.id;
+
+    } catch (err) {
+        console.log("ID fetch error:", err);
+        return 1;
+    }
 }
 
 /* ================= SHEET ================= */
@@ -122,6 +109,21 @@ async function sendToSheet(data) {
     } catch (err) {
         console.log("Sheet Error:", err);
     }
+}
+
+/* ================= MENU ================= */
+
+function showMenu(chatId) {
+    bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
+        reply_markup: {
+            keyboard: [
+                ["➕ Ekle", "📊 Özet"],
+                ["❌ Sil"]
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false
+        }
+    });
 }
 
 /* ================= START ================= */
@@ -213,8 +215,6 @@ bot.on("message", async (msg) => {
         return;
     }
 
-    /* ===== DELETE INPUT ===== */
-
     if (waitingForDelete[chatId]) {
 
         if (isNaN(text)) {
@@ -230,7 +230,6 @@ bot.on("message", async (msg) => {
         });
 
         bot.sendMessage(chatId, `#${id} silindi ❌`);
-
         waitingForDelete[chatId] = false;
         return;
     }
@@ -280,8 +279,7 @@ bot.on("message", async (msg) => {
         }
 
         const { date, time } = getDateTime();
-
-        const id = await getNextId();
+        const id = await getNextId(date);
 
         if (!dailyData[date]) {
             dailyData[date] = {};
