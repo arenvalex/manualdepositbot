@@ -9,17 +9,18 @@ const bot = new TelegramBot(token, { polling: true });
 let waitingForInput = {};
 let waitingForDelete = {};
 let dailyData = {};
+let dailyTransactions = {};
 let transactions = {};
 let transactionId = 1;
 let errorCount = {};
 
-/* ✅ SADECE BU 2 KİŞİ */
+/* ✅ WHITELIST */
 const allowedUsers = [
     8467771210,
     5340962409
 ];
 
-/* ✅ TÜRKÇE KARAKTER TEMİZLEYİCİ */
+/* ✅ TÜRKÇE NORMALIZE */
 function normalizeText(text) {
     return text
         .toLowerCase()
@@ -28,12 +29,10 @@ function normalizeText(text) {
         .replace(/ü/g, "u")
         .replace(/ş/g, "s")
         .replace(/ö/g, "o")
-        .replace(/ç/g, "c")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+        .replace(/ç/g, "c");
 }
 
-/* ✅ SAHA MAP */
+/* ✅ PROVIDER MAP */
 const providerMap = {
     "sahin": "Şahin",
     "jorpay": "Jorpay",
@@ -48,15 +47,7 @@ const providerMap = {
     "manuel": "Manuel Test"
 };
 
-/* ================= DELETE AFTER ================= */
-
-function deleteAfter(chatId, messageId, seconds = 60) {
-    setTimeout(() => {
-        bot.deleteMessage(chatId, messageId).catch(() => {});
-    }, seconds * 1000);
-}
-
-/* ================= ISTANBUL DATE ================= */
+/* ================= DATE ================= */
 
 function getDateTime() {
     const now = new Date();
@@ -76,20 +67,6 @@ function getDateTime() {
     });
 
     return { date, time };
-}
-
-/* ================= MENU ================= */
-
-function showMenu(chatId) {
-    bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
-        reply_markup: {
-            keyboard: [
-                ["➕ Ekle", "📊 Özet"],
-                ["❌ Sil"]
-            ],
-            resize_keyboard: true
-        }
-    });
 }
 
 /* ================= SHEET ================= */
@@ -113,12 +90,17 @@ bot.onText(/\/start/, (msg) => {
         bot.sendMessage(msg.chat.id, "Yetkisiz işlem.");
         return;
     }
-    showMenu(msg.chat.id);
+
+    bot.sendMessage(msg.chat.id,
+        "➕ Ekle yazarak işlem başlat.\n📊 Özet yazarak rapor al.\n❌ Sil yazarak işlem sil."
+    );
 });
 
-/* ================= MESSAGE HANDLER ================= */
+/* ================= MESSAGE ================= */
 
 bot.on("message", async (msg) => {
+
+    if (!msg.text) return;
 
     if (!allowedUsers.includes(msg.from.id)) {
         bot.sendMessage(msg.chat.id, "Yetkisiz işlem.");
@@ -127,93 +109,80 @@ bot.on("message", async (msg) => {
 
     const chatId = msg.chat.id;
     const text = msg.text;
-    if (!text) return;
+
+    /* ===== EKLE ===== */
 
     if (text === "➕ Ekle") {
-
-        deleteAfter(chatId, msg.message_id);
-
         waitingForInput[chatId] = true;
-        waitingForDelete[chatId] = false;
         errorCount[chatId] = 0;
-
-        const sent = await bot.sendMessage(chatId,
-            "Kullanıcı ve tutar yaz:\nÖrnek: test1 1500"
-        );
-
-        deleteAfter(chatId, sent.message_id);
+        bot.sendMessage(chatId, "Kullanıcı ve tutar yaz:\nörnek: test1 1500");
         return;
     }
+
+    /* ===== ÖZET (SADECE O GRUP) ===== */
 
     if (text === "📊 Özet") {
 
-        deleteAfter(chatId, msg.message_id);
+        const { date } = getDateTime();
+        const groupName = normalizeText(msg.chat.title || "");
 
-        const today = getDateTime().date;
+        let provider = null;
 
-        if (!dailyData[today]) {
-            const sent = await bot.sendMessage(chatId, "Bugün işlem yok.");
-            deleteAfter(chatId, sent.message_id);
+        for (let key in providerMap) {
+            if (groupName.includes(key)) {
+                provider = providerMap[key];
+                break;
+            }
+        }
+
+        if (!provider) {
+            bot.sendMessage(chatId, "Bu grup için saha eşleşmesi bulunamadı.");
             return;
         }
 
-        let textMsg = `${today} Özeti:\n\n`;
-        let total = 0;
-
-        for (let provider in dailyData[today]) {
-            const amount = dailyData[today][provider];
-            total += amount;
-            textMsg += `${provider}: ${amount} TRY\n`;
+        if (!dailyData[date] || !dailyData[date][provider]) {
+            bot.sendMessage(chatId, "Bugün bu saha için işlem yok.");
+            return;
         }
 
-        textMsg += `\nToplam: ${total} TRY`;
+        let summary = `📊 ${date} - ${provider} Özeti\n\n`;
+        summary += `Toplam: ${dailyData[date][provider]} TRY\n\n`;
+        summary += "📝 İşlemler:\n";
 
-        const sent = await bot.sendMessage(chatId, textMsg);
-        deleteAfter(chatId, sent.message_id);
+        dailyTransactions[date]
+            .filter(t => t.provider === provider)
+            .forEach(t => {
+                summary += `#${t.id} | ${t.username} - ${t.amount} TRY\n`;
+            });
+
+        bot.sendMessage(chatId, summary);
         return;
     }
+
+    /* ===== SİL ===== */
 
     if (text === "❌ Sil") {
-
-        deleteAfter(chatId, msg.message_id);
-
         waitingForDelete[chatId] = true;
-        waitingForInput[chatId] = false;
-
-        const sent = await bot.sendMessage(chatId, "Silmek için ID yaz:");
-        deleteAfter(chatId, sent.message_id);
+        bot.sendMessage(chatId, "Silmek için ID yaz:");
         return;
     }
 
-    /* ===== DEPOSIT INPUT ===== */
+    /* ===== DEPOSIT ===== */
 
     if (waitingForInput[chatId]) {
-
-        deleteAfter(chatId, msg.message_id);
 
         const parts = text.trim().split(" ");
 
         if (parts.length !== 2 || isNaN(parts[1])) {
 
             if (!errorCount[chatId]) {
-
                 errorCount[chatId] = 1;
-
-                const sent = await bot.sendMessage(chatId,
+                bot.sendMessage(chatId,
                     "Lan napıyon :D\nFormat yanlış.\n\nörnek: test1 1500\n\nBir de iki işlem yapıcaksın onu da yanlış girme ya :D"
                 );
-
-                deleteAfter(chatId, sent.message_id);
                 return;
-
             } else {
-
-                const sent = await bot.sendMessage(chatId,
-                    "İşlem iptal edildi. Baştan başla."
-                );
-
-                deleteAfter(chatId, sent.message_id);
-
+                bot.sendMessage(chatId, "İşlem iptal edildi.");
                 waitingForInput[chatId] = false;
                 errorCount[chatId] = 0;
                 return;
@@ -229,9 +198,7 @@ bot.on("message", async (msg) => {
             ? "@" + msg.from.username
             : msg.from.first_name;
 
-        /* 🔥 SAHA ALGILAMA (STABİL) */
-        const rawGroupName = msg.chat.title || "";
-        const groupName = normalizeText(rawGroupName);
+        const groupName = normalizeText(msg.chat.title || "");
 
         let provider = null;
 
@@ -243,25 +210,32 @@ bot.on("message", async (msg) => {
         }
 
         if (!provider) {
-            const sent = await bot.sendMessage(chatId, "Bu grup için saha eşleşmesi bulunamadı.");
-            deleteAfter(chatId, sent.message_id);
+            bot.sendMessage(chatId, "Bu grup için saha eşleşmesi bulunamadı.");
             return;
         }
 
         const { date, time } = getDateTime();
 
-        if (!dailyData[date]) dailyData[date] = {};
-        if (!dailyData[date][provider]) dailyData[date][provider] = 0;
+        if (!dailyData[date]) {
+            dailyData[date] = {};
+            dailyTransactions[date] = [];
+        }
+
+        if (!dailyData[date][provider])
+            dailyData[date][provider] = 0;
 
         dailyData[date][provider] += amount;
 
         const id = transactionId++;
 
-        transactions[id] = {
-            date,
-            provider,
-            amount
-        };
+        transactions[id] = { date, provider, amount };
+
+        dailyTransactions[date].push({
+            id,
+            username,
+            amount,
+            provider
+        });
 
         await sendToSheet({
             id,
@@ -274,12 +248,12 @@ bot.on("message", async (msg) => {
             operator
         });
 
-        const sent = await bot.sendMessage(
-            chatId,
-            `#${id} | ${username} ${amount} TRY ${provider} eklendi ✅\nEkleyen: ${operator}`
-        );
+        /* SADECE İŞLEM MESAJINI SİL */
+        await bot.deleteMessage(chatId, msg.message_id).catch(() => {});
 
-        deleteAfter(chatId, sent.message_id);
+        bot.sendMessage(chatId,
+            `#${id} | ${username} ${amount} TRY ${provider} eklendi ✅`
+        );
 
         waitingForInput[chatId] = false;
         return;
@@ -289,24 +263,21 @@ bot.on("message", async (msg) => {
 
     if (waitingForDelete[chatId]) {
 
-        deleteAfter(chatId, msg.message_id);
-
         const id = parseInt(text);
 
         if (!transactions[id]) {
-            const sent = await bot.sendMessage(chatId, "İşlem bulunamadı.");
-            deleteAfter(chatId, sent.message_id);
+            bot.sendMessage(chatId, "İşlem bulunamadı.");
             return;
         }
 
         const { date, provider, amount } = transactions[id];
         const { time } = getDateTime();
 
-        const operator = msg.from.username
-            ? "@" + msg.from.username
-            : msg.from.first_name;
-
         dailyData[date][provider] -= amount;
+        delete transactions[id];
+
+        dailyTransactions[date] =
+            dailyTransactions[date].filter(t => t.id !== id);
 
         await sendToSheet({
             id,
@@ -315,19 +286,12 @@ bot.on("message", async (msg) => {
             username: "-",
             amount: -amount,
             provider,
-            type: "SIL",
-            operator
+            type: "SIL"
         });
 
-        delete transactions[id];
+        bot.sendMessage(chatId, `#${id} silindi ❌`);
+
         waitingForDelete[chatId] = false;
-
-        const sent = await bot.sendMessage(
-            chatId,
-            `#${id} silindi ❌\nEkleyen: ${operator}`
-        );
-
-        deleteAfter(chatId, sent.message_id);
         return;
     }
 
