@@ -23,14 +23,25 @@ const allowedUsers = [
 /* ================= ID EXCELDEN ================= */
 
 async function getNextId() {
-    const response = await fetch(SHEET_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "GET_NEXT_ID" })
-    });
+    try {
+        const response = await fetch(SHEET_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "GET_NEXT_ID" })
+        });
 
-    const text = await response.text();
-    return parseInt(text);
+        const data = await response.json();
+
+        if (!data.id || isNaN(data.id)) {
+            return 1;
+        }
+
+        return data.id;
+
+    } catch (err) {
+        console.log("ID fetch error:", err);
+        return 1;
+    }
 }
 
 /* ================= TÜRKÇE NORMALIZE ================= */
