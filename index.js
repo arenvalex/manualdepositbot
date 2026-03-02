@@ -11,7 +11,6 @@ let waitingForDelete = {};
 let dailyData = {};
 let dailyTransactions = {};
 let transactions = {};
-let transactionId = 1;
 let errorCount = {};
 
 /* ✅ WHITELIST */
@@ -21,7 +20,21 @@ const allowedUsers = [
     1382439300
 ];
 
-/* ✅ TÜRKÇE NORMALIZE */
+/* ================= ID EXCELDEN ================= */
+
+async function getNextId() {
+    const response = await fetch(SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "GET_NEXT_ID" })
+    });
+
+    const text = await response.text();
+    return parseInt(text);
+}
+
+/* ================= TÜRKÇE NORMALIZE ================= */
+
 function normalizeText(text) {
     return text
         .toLowerCase()
@@ -33,7 +46,8 @@ function normalizeText(text) {
         .replace(/ç/g, "c");
 }
 
-/* ✅ PROVIDER MAP */
+/* ================= PROVIDER MAP ================= */
+
 const providerMap = {
     "sahin": "Şahin",
     "jorpay": "Jorpay",
@@ -141,7 +155,7 @@ bot.on("message", async (msg) => {
         return;
     }
 
-    /* ===== ÖZET (GRUP BAZLI) ===== */
+    /* ===== ÖZET ===== */
 
     if (text === "📊 Özet") {
 
@@ -199,20 +213,6 @@ bot.on("message", async (msg) => {
 
         const id = parseInt(text);
 
-        if (!transactions[id]) {
-            bot.sendMessage(chatId, "İşlem bulunamadı.");
-            waitingForDelete[chatId] = false;
-            return;
-        }
-
-        const { date, provider, amount } = transactions[id];
-
-        dailyData[date][provider] -= amount;
-        delete transactions[id];
-
-        dailyTransactions[date] =
-            dailyTransactions[date].filter(t => t.id !== id);
-
         await sendToSheet({
             action: "DELETE",
             id: id
@@ -251,7 +251,7 @@ bot.on("message", async (msg) => {
 
         const operator = msg.from.username
             ? "@" + msg.from.username
-            : msg.from.first_name;
+            : msg.from.first_name || "Bilinmiyor";
 
         const groupName = normalizeText(msg.chat.title || "");
 
@@ -270,6 +270,8 @@ bot.on("message", async (msg) => {
 
         const { date, time } = getDateTime();
 
+        const id = await getNextId();
+
         if (!dailyData[date]) {
             dailyData[date] = {};
             dailyTransactions[date] = [];
@@ -279,10 +281,6 @@ bot.on("message", async (msg) => {
             dailyData[date][provider] = 0;
 
         dailyData[date][provider] += amount;
-
-        const id = transactionId++;
-
-        transactions[id] = { date, provider, amount };
 
         dailyTransactions[date].push({
             id,
@@ -298,15 +296,14 @@ bot.on("message", async (msg) => {
             username,
             amount,
             provider,
-            type: "EKLE",
-            operator
+            type: "EKLE"
         });
 
         await bot.deleteMessage(chatId, msg.message_id).catch(() => {});
 
         bot.sendMessage(
             chatId,
-            `#${id} | ${username} ${amount} TRY ${provider} eklendi ✅`
+            `#${id} | ${username} ${amount} TRY ${provider} manuel eklendi ✅\nEkleyen: ${operator}`
         );
 
         waitingForInput[chatId] = false;
