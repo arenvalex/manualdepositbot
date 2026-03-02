@@ -14,7 +14,7 @@ let transactions = {};
 let transactionId = 1;
 let errorCount = {};
 
-/* ✅ WHITELIST (GÜNCELLENDİ) */
+/* ✅ WHITELIST */
 const allowedUsers = [
     8467771210,
     5340962409,
@@ -123,6 +123,8 @@ bot.on("message", async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
+    /* ===== EKLE ===== */
+
     if (text === "➕ Ekle") {
         waitingForInput[chatId] = true;
         errorCount[chatId] = 0;
@@ -138,6 +140,8 @@ bot.on("message", async (msg) => {
 
         return;
     }
+
+    /* ===== ÖZET (GRUP BAZLI) ===== */
 
     if (text === "📊 Özet") {
 
@@ -176,9 +180,47 @@ bot.on("message", async (msg) => {
         return;
     }
 
+    /* ===== SİL ===== */
+
     if (text === "❌ Sil") {
         waitingForDelete[chatId] = true;
         bot.sendMessage(chatId, "Silmek için ID yaz:");
+        return;
+    }
+
+    /* ===== DELETE INPUT ===== */
+
+    if (waitingForDelete[chatId]) {
+
+        if (isNaN(text)) {
+            waitingForDelete[chatId] = false;
+            return;
+        }
+
+        const id = parseInt(text);
+
+        if (!transactions[id]) {
+            bot.sendMessage(chatId, "İşlem bulunamadı.");
+            waitingForDelete[chatId] = false;
+            return;
+        }
+
+        const { date, provider, amount } = transactions[id];
+
+        dailyData[date][provider] -= amount;
+        delete transactions[id];
+
+        dailyTransactions[date] =
+            dailyTransactions[date].filter(t => t.id !== id);
+
+        await sendToSheet({
+            action: "DELETE",
+            id: id
+        });
+
+        bot.sendMessage(chatId, `#${id} silindi ❌`);
+
+        waitingForDelete[chatId] = false;
         return;
     }
 
@@ -268,42 +310,6 @@ bot.on("message", async (msg) => {
         );
 
         waitingForInput[chatId] = false;
-        return;
-    }
-
-    /* ===== DELETE ===== */
-
-    if (waitingForDelete[chatId]) {
-
-        const id = parseInt(text);
-
-        if (!transactions[id]) {
-            bot.sendMessage(chatId, "İşlem bulunamadı.");
-            return;
-        }
-
-        const { date, provider, amount } = transactions[id];
-        const { time } = getDateTime();
-
-        dailyData[date][provider] -= amount;
-        delete transactions[id];
-
-        dailyTransactions[date] =
-            dailyTransactions[date].filter(t => t.id !== id);
-
-        await sendToSheet({
-            id,
-            date,
-            time,
-            username: "-",
-            amount: -amount,
-            provider,
-            type: "SIL"
-        });
-
-        bot.sendMessage(chatId, `#${id} silindi ❌`);
-
-        waitingForDelete[chatId] = false;
         return;
     }
 
