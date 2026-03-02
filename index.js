@@ -207,32 +207,52 @@ bot.on("message", async (msg) => {
         return;
     }
 
-    /* ===== SİL ===== */
+ /* ===== DELETE INPUT ===== */
 
-    if (text === "❌ Sil") {
-        waitingForDelete[chatId] = true;
-        bot.sendMessage(chatId, "Silmek için ID yaz:");
-        return;
-    }
+if (waitingForDelete[chatId]) {
 
-    if (waitingForDelete[chatId]) {
-
-        if (isNaN(text)) {
-            waitingForDelete[chatId] = false;
-            return;
-        }
-
-        const id = parseInt(text);
-
-        await sendToSheet({
-            action: "DELETE",
-            id: id
-        });
-
-        bot.sendMessage(chatId, `#${id} silindi ❌`);
+    if (isNaN(text)) {
         waitingForDelete[chatId] = false;
         return;
     }
+
+    const id = parseInt(text);
+    const { date } = getDateTime();
+
+    let deletedTransaction = null;
+
+    // RAM'de ara (bugünkü işlemler içinde)
+    if (dailyTransactions[date]) {
+        deletedTransaction = dailyTransactions[date].find(t => t.id === id);
+    }
+
+    // Eğer RAM'de yoksa kullanıcıyı bilgilendir
+    if (!deletedTransaction) {
+        bot.sendMessage(chatId, "İşlem bulunamadı.");
+        waitingForDelete[chatId] = false;
+        return;
+    }
+
+    // Excel'den sil
+    await sendToSheet({
+        action: "DELETE",
+        id: id
+    });
+
+    // RAM'den sil
+    dailyTransactions[date] =
+        dailyTransactions[date].filter(t => t.id !== id);
+
+    // Günlük toplamdan düş
+    if (dailyData[date] && dailyData[date][deletedTransaction.provider]) {
+        dailyData[date][deletedTransaction.provider] -= deletedTransaction.amount;
+    }
+
+    bot.sendMessage(chatId, `#${id} silindi ❌`);
+
+    waitingForDelete[chatId] = false;
+    return;
+}
 
     /* ===== DEPOSIT ===== */
 
