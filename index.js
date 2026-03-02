@@ -82,7 +82,10 @@ async function sendToSheet(data) {
 /* ================= START ================= */
 
 bot.onText(/\/start/, (msg) => {
-    if (!allowedUsers.includes(msg.from.id)) return;
+    if (!allowedUsers.includes(msg.from.id)) {
+        bot.sendMessage(msg.chat.id, "Yetkisiz işlem.");
+        return;
+    }
     showMenu(msg.chat.id);
 });
 
@@ -91,6 +94,7 @@ bot.onText(/\/start/, (msg) => {
 bot.on("message", async (msg) => {
 
     if (!allowedUsers.includes(msg.from.id)) {
+        bot.sendMessage(msg.chat.id, "Yetkisiz işlem.");
         return;
     }
 
@@ -203,7 +207,7 @@ bot.on("message", async (msg) => {
         pendingDeposits[chatId] = { username, amount, operator };
         waitingForInput[chatId] = false;
 
-        const sent = await bot.sendMessage(chatId, "Saha seçin:", {
+        await bot.sendMessage(chatId, "Saha seçin:", {
             reply_markup: {
                 inline_keyboard: [
                     [{ text: "Şahin", callback_data: "Şahin" }],
@@ -274,7 +278,10 @@ bot.on("message", async (msg) => {
 
 bot.on("callback_query", async (query) => {
 
-    if (!allowedUsers.includes(query.from.id)) return;
+    if (!allowedUsers.includes(query.from.id)) {
+        bot.answerCallbackQuery(query.id, { text: "Yetkisiz işlem.", show_alert: true });
+        return;
+    }
 
     const chatId = query.message.chat.id;
     const provider = query.data;
