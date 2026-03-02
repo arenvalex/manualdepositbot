@@ -70,7 +70,7 @@ function getDateTime() {
     return { date, time };
 }
 
-/* ================= GÜNLÜK ID EXCELDEN ================= */
+/* ================= GÜNLÜK ID ================= */
 
 async function getNextId(date) {
     try {
@@ -154,6 +154,7 @@ bot.on("message", async (msg) => {
 
     if (text === "➕ Ekle") {
         waitingForInput[chatId] = true;
+        waitingForDelete[chatId] = false;
         errorCount[chatId] = 0;
 
         const sent = await bot.sendMessage(
@@ -207,51 +208,58 @@ bot.on("message", async (msg) => {
         return;
     }
 
-/* ===== DELETE INPUT ===== */
+    /* ===== SİL ===== */
 
-if (waitingForDelete[chatId]) {
+    if (text === "❌ Sil") {
+        waitingForDelete[chatId] = true;
+        waitingForInput[chatId] = false;
+        bot.sendMessage(chatId, "Silmek için ID yaz:");
+        return;
+    }
 
-    if (isNaN(text)) {
+    /* ===== DELETE INPUT ===== */
+
+    if (waitingForDelete[chatId]) {
+
+        const id = parseInt(text);
+
+        if (isNaN(id)) {
+            waitingForDelete[chatId] = false;
+            return;
+        }
+
+        await sendToSheet({
+            action: "DELETE",
+            id: id
+        });
+
+        // RAM temizle
+        Object.keys(dailyTransactions).forEach(date => {
+            dailyTransactions[date] =
+                dailyTransactions[date].filter(t => t.id !== id);
+        });
+
+        Object.keys(dailyData).forEach(date => {
+            Object.keys(dailyData[date]).forEach(provider => {
+
+                let total = 0;
+
+                if (dailyTransactions[date]) {
+                    dailyTransactions[date]
+                        .filter(t => t.provider === provider)
+                        .forEach(t => total += t.amount);
+                }
+
+                dailyData[date][provider] = total;
+            });
+        });
+
+        bot.sendMessage(chatId, `#${id} silindi ❌`);
+
         waitingForDelete[chatId] = false;
         return;
     }
 
-    const id = parseInt(text);
-
-    // Excel'den sil
-    await sendToSheet({
-        action: "DELETE",
-        id: id
-    });
-
-    // RAM'den tüm günlerden sil
-    for (let date in dailyTransactions) {
-        dailyTransactions[date] =
-            dailyTransactions[date].filter(t => t.id !== id);
-    }
-
-    // Günlük toplamları yeniden hesapla
-    for (let date in dailyData) {
-        for (let provider in dailyData[date]) {
-            let newTotal = 0;
-
-            if (dailyTransactions[date]) {
-                dailyTransactions[date]
-                    .filter(t => t.provider === provider)
-                    .forEach(t => {
-                        newTotal += t.amount;
-                    });
-            }
-
-            dailyData[date][provider] = newTotal;
-        }
-    }
-
-    bot.sendMessage(chatId, `#${id} silindi ❌`);
-
-    waitingForDelete[chatId] = false;
-    return;
-}
     /* ===== DEPOSIT ===== */
 
     if (waitingForInput[chatId]) {
