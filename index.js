@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
 
 const token = process.env.TOKEN;
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbw5v5BD_g39znoB_9AvPb-NKPw8sq56sb6H5zorA933uioStPiX0ie_CzFerHznyjI/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbw06sdk4frd1_-2j4UmZXsrjuQ7lvdikyjR-b7MJvJ5Bs6G7DIbBvoO5rp7wV3ZlNbw/exec";
 
 const bot = new TelegramBot(token, { polling: true });
 
@@ -117,6 +117,50 @@ async function sendToSheet(data) {
     }
 }
 
+/* ================= EXCEL'DEN BUGÜNÜ YÜKLE ================= */
+
+async function loadTodayData() {
+
+    const { date } = getDateTime();
+
+    try {
+
+        const response = await fetch(SHEET_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "GET_TODAY",
+                date: date
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.length) return;
+
+        dailyTransactions[date] = [];
+        dailyData[date] = {};
+
+        data.forEach(t => {
+
+            dailyTransactions[date].push(t);
+
+            if (!dailyData[date][t.provider]) {
+                dailyData[date][t.provider] = 0;
+            }
+
+            dailyData[date][t.provider] += Number(t.amount);
+
+        });
+
+        console.log("Excel verileri RAM'e yüklendi.");
+
+    } catch (err) {
+        console.log("Excel load error:", err);
+    }
+
+}
+
 /* ================= MENU ================= */
 
 function showMenu(chatId) {
@@ -136,7 +180,6 @@ function showMenu(chatId) {
 
 bot.onText(/\/start/, (msg) => {
     if (!allowedUsers.includes(msg.from.id)) {
-        bot.sendMessage(msg.chat.id, "Yetkisiz işlem.");
         return;
     }
     showMenu(msg.chat.id);
@@ -149,7 +192,7 @@ bot.on("message", async (msg) => {
     if (!msg.text) return;
 
     if (!allowedUsers.includes(msg.from.id)) {
-        return; // Sessiz ignore
+        return;
     }
 
     const chatId = msg.chat.id;
@@ -173,7 +216,7 @@ bot.on("message", async (msg) => {
 
         return;
     }
-    
+
     /* ===== ÖZET ===== */
 
     if (text === "📊 Özet") {
@@ -238,7 +281,6 @@ bot.on("message", async (msg) => {
             id: id
         });
 
-        // RAM temizle
         Object.keys(dailyTransactions).forEach(date => {
             dailyTransactions[date] =
                 dailyTransactions[date].filter(t => t.id !== id);
@@ -351,3 +393,6 @@ bot.on("message", async (msg) => {
     }
 
 });
+
+/* BOT AÇILINCA BUGÜNÜ YÜKLE */
+loadTodayData();
