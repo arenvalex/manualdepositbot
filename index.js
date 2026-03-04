@@ -51,6 +51,7 @@ const providerMap = {
     "garanti": "Garanti QR",
     "cryptobox": "Cryptobox",
     "easy": "Easy",
+    "dream": "Dream",
     "manuel": "Manuel Test"
 };
 
