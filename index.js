@@ -12,6 +12,10 @@ let dailyData = {};
 let dailyTransactions = {};
 let errorCount = {};
 
+/* ================= FINANS RAPOR GRUBU ================= */
+
+const FINANS_GRUP_ID = -1005035282347; // buraya finans grubunun chat id gelecek
+
 /* ✅ WHITELIST */
 const allowedUsers = [
     8467771210,
@@ -188,7 +192,6 @@ bot.onText(/\/start/, (msg) => {
     showMenu(msg.chat.id);
 });
 
-
 /* ================= MESSAGE ================= */
 
 bot.on("message", async (msg) => {
@@ -201,17 +204,6 @@ bot.on("message", async (msg) => {
 
     const chatId = msg.chat.id;
     const text = msg.text;
-/* ===== ID KOMUTU ===== */
-
-if (text === "/id") {
-
-    const chatId = msg.chat.id;
-
-    bot.sendMessage(chatId, `Grup ID: ${chatId}`);
-
-    return;
-}
-    /* ===== EKLE ===== */
 
     if (text === "➕ Ekle") {
         waitingForInput[chatId] = true;
@@ -229,8 +221,6 @@ if (text === "/id") {
 
         return;
     }
-
-    /* ===== ÖZET ===== */
 
     if (text === "📊 Özet") {
 
@@ -269,16 +259,12 @@ if (text === "/id") {
         return;
     }
 
-    /* ===== SİL ===== */
-
     if (text === "❌ Sil") {
         waitingForDelete[chatId] = true;
         waitingForInput[chatId] = false;
         bot.sendMessage(chatId, "Silmek için ID yaz:");
         return;
     }
-
-    /* ===== DELETE INPUT ===== */
 
     if (waitingForDelete[chatId]) {
 
@@ -299,28 +285,11 @@ if (text === "/id") {
                 dailyTransactions[date].filter(t => t.id !== id);
         });
 
-        Object.keys(dailyData).forEach(date => {
-            Object.keys(dailyData[date]).forEach(provider => {
-
-                let total = 0;
-
-                if (dailyTransactions[date]) {
-                    dailyTransactions[date]
-                        .filter(t => t.provider === provider)
-                        .forEach(t => total += t.amount);
-                }
-
-                dailyData[date][provider] = total;
-            });
-        });
-
         bot.sendMessage(chatId, `#${id} silindi ❌`);
 
         waitingForDelete[chatId] = false;
         return;
     }
-
-    /* ===== DEPOSIT ===== */
 
     if (waitingForInput[chatId]) {
 
@@ -409,3 +378,47 @@ if (text === "/id") {
 
 /* BOT AÇILINCA BUGÜNÜ YÜKLE */
 loadTodayData();
+
+/* ================= GÜN SONU RAPOR ================= */
+
+function sendDailyFinanceReport() {
+
+    const { date } = getDateTime();
+
+    if (!dailyData[date]) return;
+
+    let text = `📊 Gün Sonu Finans Raporu - ${date}\n\n`;
+
+    let total = 0;
+
+    Object.keys(dailyData[date]).forEach(provider => {
+
+        const amount = dailyData[date][provider];
+
+        total += amount;
+
+        text += `${provider}: ${amount} TRY\n`;
+
+    });
+
+    text += `\n💰 Genel Toplam: ${total} TRY`;
+
+    bot.sendMessage(FINANS_GRUP_ID, text);
+
+}
+
+/* ================= 23:50 ZAMANLAYICI ================= */
+
+setInterval(() => {
+
+    const now = new Date().toLocaleTimeString("tr-TR", {
+        timeZone: "Europe/Istanbul",
+        hour: "2-digit",
+        minute: "2-digit"
+    });
+
+    if (now === "23:50") {
+        sendDailyFinanceReport();
+    }
+
+}, 60000);
