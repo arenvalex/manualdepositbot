@@ -188,16 +188,6 @@ bot.onText(/\/start/, (msg) => {
     showMenu(msg.chat.id);
 });
 
-/* ===== ID KOMUTU ===== */
-
-if (text === "/id") {
-
-    const chatId = msg.chat.id;
-
-    bot.sendMessage(chatId, `Grup ID: ${chatId}`);
-
-    return;
-}
 
 /* ================= MESSAGE ================= */
 
@@ -211,7 +201,16 @@ bot.on("message", async (msg) => {
 
     const chatId = msg.chat.id;
     const text = msg.text;
+/* ===== ID KOMUTU ===== */
 
+if (text === "/id") {
+
+    const chatId = msg.chat.id;
+
+    bot.sendMessage(chatId, `Grup ID: ${chatId}`);
+
+    return;
+}
     /* ===== EKLE ===== */
 
     if (text === "➕ Ekle") {
