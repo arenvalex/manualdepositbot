@@ -399,7 +399,7 @@ bot.on("message", async (msg) => {
         });
 
         bot.sendMessage(chatId,
-`#${id} | ${username} ${amount} TRY ${provider} manuel eklendi ✅`);
+"#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅");
 
         waitingForInput[chatId] = false;
 
@@ -420,7 +420,7 @@ function sendDailyFinanceReport() {
 
     if (!dailyData[date]) return;
 
-    let text = `📊 Gün Sonu Finans Raporu - ${date}\n\n`;
+    let text = "📊 Gün Sonu Finans Raporu - " + date + "\n\n";
 
     let total = 0;
 
@@ -430,11 +430,11 @@ function sendDailyFinanceReport() {
 
         total += amount;
 
-        text += `${provider}: ${amount} TRY\n`;
+        text += provider + ": " + amount + " TRY\n";
 
     });
 
-    text += `\n💰 Genel Toplam: ${total} TRY`;
+    text += "\n💰 Genel Toplam: " + total + " TRY";
 
     bot.sendMessage(FINANS_GRUP_ID,text);
 
