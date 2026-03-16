@@ -265,7 +265,7 @@ bot.on("message", async (msg) => {
         .filter(t => t.provider === provider)
         .forEach(t => {
 
-            summary += `#${t.id} | ${t.username} - ${t.amount} TRY\n`;
+            summary += "#" + t.id + " | " + t.username + " - " + t.amount + " TRY\n";
 
         });
 
