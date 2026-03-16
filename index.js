@@ -258,7 +258,7 @@ bot.on("message", async (msg) => {
 
         let summary = "📊 " + date + " - " + provider + " Özeti\n\n";
 
-        summary += `Toplam: ${dailyData[date][provider]} TRY\n\n`;
+        summary += "Toplam: " + dailyData[date][provider] + " TRY\n\n";
         summary += "📝 İşlemler:\n";
 
         dailyTransactions[date]
