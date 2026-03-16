@@ -1,3 +1,4 @@
+```javascript
 const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
 
@@ -14,7 +15,7 @@ let errorCount = {};
 
 /* ================= FINANS RAPOR GRUBU ================= */
 
-const FINANS_GRUP_ID = -1005035282347; // buraya finans grubunun chat id gelecek
+const FINANS_GRUP_ID = -1005035282347;
 
 /* ✅ WHITELIST */
 const allowedUsers = [
@@ -64,6 +65,7 @@ const providerMap = {
 /* ================= DATE ================= */
 
 function getDateTime() {
+
     const now = new Date();
 
     const date = now.toLocaleDateString("tr-TR", {
@@ -86,7 +88,9 @@ function getDateTime() {
 /* ================= GÜNLÜK ID ================= */
 
 async function getNextId(date) {
+
     try {
+
         const response = await fetch(SHEET_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -105,22 +109,29 @@ async function getNextId(date) {
         return data.id;
 
     } catch (err) {
+
         console.log("ID fetch error:", err);
         return 1;
+
     }
 }
 
 /* ================= SHEET ================= */
 
 async function sendToSheet(data) {
+
     try {
+
         await fetch(SHEET_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
         });
+
     } catch (err) {
+
         console.log("Sheet Error:", err);
+
     }
 }
 
@@ -163,22 +174,23 @@ async function loadTodayData() {
         console.log("Excel verileri RAM'e yüklendi.");
 
     } catch (err) {
-        console.log("Excel load error:", err);
-    }
 
+        console.log("Excel load error:", err);
+
+    }
 }
 
 /* ================= MENU ================= */
 
 function showMenu(chatId) {
+
     bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
         reply_markup: {
             keyboard: [
                 ["➕ Ekle", "📊 Özet"],
                 ["❌ Sil"]
             ],
-            resize_keyboard: true,
-            one_time_keyboard: false
+            resize_keyboard: true
         }
     });
 }
@@ -186,10 +198,11 @@ function showMenu(chatId) {
 /* ================= START ================= */
 
 bot.onText(/\/start/, (msg) => {
-    if (!allowedUsers.includes(msg.from.id)) {
-        return;
-    }
+
+    if (!allowedUsers.includes(msg.from.id)) return;
+
     showMenu(msg.chat.id);
+
 });
 
 /* ================= MESSAGE ================= */
@@ -197,30 +210,25 @@ bot.onText(/\/start/, (msg) => {
 bot.on("message", async (msg) => {
 
     if (!msg.text) return;
-
-    if (!allowedUsers.includes(msg.from.id)) {
-        return;
-    }
+    if (!allowedUsers.includes(msg.from.id)) return;
 
     const chatId = msg.chat.id;
     const text = msg.text;
 
+    /* ================= EKLE ================= */
+
     if (text === "➕ Ekle") {
+
         waitingForInput[chatId] = true;
         waitingForDelete[chatId] = false;
         errorCount[chatId] = 0;
 
-        const sent = await bot.sendMessage(
-            chatId,
-            "Kullanıcı ve tutar yaz:\nörnek: test1 1500"
-        );
-
-        setTimeout(() => {
-            bot.deleteMessage(chatId, sent.message_id).catch(() => {});
-        }, 20000);
+        bot.sendMessage(chatId,"Kullanıcı ve tutar yaz:\nörnek: test1 1500");
 
         return;
     }
+
+    /* ================= ÖZET ================= */
 
     if (text === "📊 Özet") {
 
@@ -228,41 +236,53 @@ bot.on("message", async (msg) => {
         const groupName = normalizeText(msg.chat.title || "");
 
         let provider = null;
+
         for (let key in providerMap) {
+
             if (groupName.includes(key)) {
                 provider = providerMap[key];
                 break;
             }
+
         }
 
         if (!provider) {
-            bot.sendMessage(chatId, "Bu grup için saha eşleşmesi bulunamadı.");
+            bot.sendMessage(chatId,"Bu grup için saha eşleşmesi bulunamadı.");
             return;
         }
 
         if (!dailyData[date] || !dailyData[date][provider]) {
-            bot.sendMessage(chatId, "Bugün bu saha için işlem yok.");
+            bot.sendMessage(chatId,"Bugün bu saha için işlem yok.");
             return;
         }
 
         let summary = `📊 ${date} - ${provider} Özeti\n\n`;
+
         summary += `Toplam: ${dailyData[date][provider]} TRY\n\n`;
         summary += "📝 İşlemler:\n";
 
         dailyTransactions[date]
-            .filter(t => t.provider === provider)
-            .forEach(t => {
-                summary += `#${t.id} | ${t.username} - ${t.amount} TRY\n`;
-            });
+        .filter(t => t.provider === provider)
+        .forEach(t => {
 
-        bot.sendMessage(chatId, summary);
+            summary += `#${t.id} | ${t.username} - ${t.amount} TRY\n`;
+
+        });
+
+        bot.sendMessage(chatId,summary);
+
         return;
     }
 
+    /* ================= SİL ================= */
+
     if (text === "❌ Sil") {
+
         waitingForDelete[chatId] = true;
         waitingForInput[chatId] = false;
-        bot.sendMessage(chatId, "Silmek için ID yaz:");
+
+        bot.sendMessage(chatId,"Silmek için ID yaz:");
+
         return;
     }
 
@@ -271,25 +291,35 @@ bot.on("message", async (msg) => {
         const id = parseInt(text);
 
         if (isNaN(id)) {
+
             waitingForDelete[chatId] = false;
             return;
+
         }
+
+        const { date } = getDateTime();
 
         await sendToSheet({
             action: "DELETE",
-            id: id
+            id: id,
+            date: date
         });
 
-        Object.keys(dailyTransactions).forEach(date => {
+        if (dailyTransactions[date]) {
+
             dailyTransactions[date] =
-                dailyTransactions[date].filter(t => t.id !== id);
-        });
+            dailyTransactions[date].filter(t => t.id !== id);
 
-        bot.sendMessage(chatId, `#${id} silindi ❌`);
+        }
+
+        bot.sendMessage(chatId,`#${id} silindi ❌`);
 
         waitingForDelete[chatId] = false;
+
         return;
     }
+
+    /* ================= VERİ GİR ================= */
 
     if (waitingForInput[chatId]) {
 
@@ -298,14 +328,18 @@ bot.on("message", async (msg) => {
         if (parts.length !== 2 || isNaN(parts[1])) {
 
             if (!errorCount[chatId]) {
+
                 errorCount[chatId] = 1;
-                bot.sendMessage(chatId, "Hatalı işlem, tekrar dene!");
+                bot.sendMessage(chatId,"Hatalı işlem tekrar dene");
                 return;
+
             } else {
-                bot.sendMessage(chatId, "İşlem iptal edildi.");
+
+                bot.sendMessage(chatId,"İşlem iptal edildi");
                 waitingForInput[chatId] = false;
                 errorCount[chatId] = 0;
                 return;
+
             }
         }
 
@@ -314,22 +348,21 @@ bot.on("message", async (msg) => {
         const username = parts[0];
         const amount = parseFloat(parts[1]);
 
-        const operator = msg.from.username
-            ? "@" + msg.from.username
-            : msg.from.first_name || "Bilinmiyor";
-
         const groupName = normalizeText(msg.chat.title || "");
 
         let provider = null;
+
         for (let key in providerMap) {
+
             if (groupName.includes(key)) {
                 provider = providerMap[key];
                 break;
             }
+
         }
 
         if (!provider) {
-            bot.sendMessage(chatId, "Bu grup için saha eşleşmesi bulunamadı.");
+            bot.sendMessage(chatId,"Bu grup için saha eşleşmesi bulunamadı.");
             return;
         }
 
@@ -337,8 +370,10 @@ bot.on("message", async (msg) => {
         const id = await getNextId(date);
 
         if (!dailyData[date]) {
+
             dailyData[date] = {};
             dailyTransactions[date] = [];
+
         }
 
         if (!dailyData[date][provider])
@@ -363,20 +398,18 @@ bot.on("message", async (msg) => {
             type: "EKLE"
         });
 
-        await bot.deleteMessage(chatId, msg.message_id).catch(() => {});
-
-        bot.sendMessage(
-            chatId,
-            `#${id} | ${username} ${amount} TRY ${provider} manuel eklendi ✅\nEkleyen: ${operator}`
-        );
+        bot.sendMessage(chatId,
+`#${id} | ${username} ${amount} TRY ${provider} manuel eklendi ✅`);
 
         waitingForInput[chatId] = false;
+
         return;
     }
 
 });
 
-/* BOT AÇILINCA BUGÜNÜ YÜKLE */
+/* BOT BAŞLAYINCA VERİ YÜKLE */
+
 loadTodayData();
 
 /* ================= GÜN SONU RAPOR ================= */
@@ -403,11 +436,11 @@ function sendDailyFinanceReport() {
 
     text += `\n💰 Genel Toplam: ${total} TRY`;
 
-    bot.sendMessage(FINANS_GRUP_ID, text);
+    bot.sendMessage(FINANS_GRUP_ID,text);
 
 }
 
-/* ================= 23:50 ZAMANLAYICI ================= */
+/* ================= 23:50 TIMER ================= */
 
 setInterval(() => {
 
@@ -418,7 +451,10 @@ setInterval(() => {
     });
 
     if (now === "23:50") {
+
         sendDailyFinanceReport();
+
     }
 
-}, 60000);
+},60000);
+```
