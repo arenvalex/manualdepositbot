@@ -185,6 +185,9 @@ bot.onText(/\/start/, (msg) => {
 
 });
 
+bot.onText(/\/id/, (msg) => {
+    bot.sendMessage(msg.chat.id, "Chat ID: " + msg.chat.id);
+});
 /* ================= RAPOR KOMUTU ================= */
 
 bot.onText(/\/rapor/, (msg) => {
