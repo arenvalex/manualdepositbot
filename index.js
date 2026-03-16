@@ -256,7 +256,7 @@ bot.on("message", async (msg) => {
             return;
         }
 
-        let summary = `📊 ${date} - ${provider} Özeti\n\n`;
+        let summary = "📊 " + date + " - " + provider + " Özeti\n\n";
 
         summary += `Toplam: ${dailyData[date][provider]} TRY\n\n`;
         summary += "📝 İşlemler:\n";
@@ -312,7 +312,7 @@ bot.on("message", async (msg) => {
 
         }
 
-        bot.sendMessage(chatId,`#${id} silindi ❌`);
+        bot.sendMessage(chatId, "#" + id + " silindi ❌");
 
         waitingForDelete[chatId] = false;
 
