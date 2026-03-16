@@ -12,7 +12,7 @@ let dailyData = {};
 let dailyTransactions = {};
 let errorCount = {};
 
-const FINANS_GRUP_ID = -1005035282347;
+const FINANS_GRUP_ID = -5035282347;
 
 const allowedUsers = [
     8467771210,
