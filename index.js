@@ -44,7 +44,7 @@ const providerMap = {
     "jorpay": "Jorpay",
     "master": "Master",
     "karahan": "Karahan",
-    "tiktak": "Tiktak",
+    "kartal": "Kartal",
     "ezel": "Ezel",
     "bizans": "Bizans",
     "garanti": "Garanti QR",
