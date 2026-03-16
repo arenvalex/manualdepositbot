@@ -185,6 +185,40 @@ bot.onText(/\/start/, (msg) => {
 
 });
 
+/* ================= RAPOR KOMUTU ================= */
+
+bot.onText(/\/rapor/, (msg) => {
+
+    if (!allowedUsers.includes(msg.from.id)) return;
+
+    if (msg.chat.id !== FINANS_GRUP_ID) return;
+
+    const { date } = getDateTime();
+
+    let text = "📊 Günlük Finans Özeti - " + date + "\n\n";
+
+    let total = 0;
+
+    Object.values(providerMap).forEach(provider => {
+
+        let amount = 0;
+
+        if (dailyData[date] && dailyData[date][provider]) {
+            amount = dailyData[date][provider];
+        }
+
+        total += amount;
+
+        text += provider + ": " + amount + " TRY\n";
+
+    });
+
+    text += "\n💰 Genel Toplam: " + total + " TRY";
+
+    bot.sendMessage(msg.chat.id, text);
+
+});
+
 bot.on("message", async (msg) => {
 
     if (!msg.text) return;
@@ -370,15 +404,18 @@ function sendDailyFinanceReport() {
 
     const { date } = getDateTime();
 
-    if (!dailyData[date]) return;
-
     let text = "📊 Gün Sonu Finans Raporu - " + date + "\n\n";
 
     let total = 0;
 
-    Object.keys(dailyData[date]).forEach(provider => {
+    Object.values(providerMap).forEach(provider => {
 
-        const amount = dailyData[date][provider];
+        let amount = 0;
+
+        if (dailyData[date] && dailyData[date][provider]) {
+            amount = dailyData[date][provider];
+        }
+
         total += amount;
 
         text += provider + ": " + amount + " TRY\n";
