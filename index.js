@@ -1,4 +1,3 @@
-```javascript
 const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
 
@@ -215,8 +214,6 @@ bot.on("message", async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
-    /* ================= EKLE ================= */
-
     if (text === "➕ Ekle") {
 
         waitingForInput[chatId] = true;
@@ -224,11 +221,8 @@ bot.on("message", async (msg) => {
         errorCount[chatId] = 0;
 
         bot.sendMessage(chatId,"Kullanıcı ve tutar yaz:\nörnek: test1 1500");
-
         return;
     }
-
-    /* ================= ÖZET ================= */
 
     if (text === "📊 Özet") {
 
@@ -238,12 +232,10 @@ bot.on("message", async (msg) => {
         let provider = null;
 
         for (let key in providerMap) {
-
             if (groupName.includes(key)) {
                 provider = providerMap[key];
                 break;
             }
-
         }
 
         if (!provider) {
@@ -257,24 +249,18 @@ bot.on("message", async (msg) => {
         }
 
         let summary = "📊 " + date + " - " + provider + " Özeti\n\n";
-
         summary += "Toplam: " + dailyData[date][provider] + " TRY\n\n";
         summary += "📝 İşlemler:\n";
 
         dailyTransactions[date]
         .filter(t => t.provider === provider)
         .forEach(t => {
-
             summary += "#" + t.id + " | " + t.username + " - " + t.amount + " TRY\n";
-
         });
 
         bot.sendMessage(chatId,summary);
-
         return;
     }
-
-    /* ================= SİL ================= */
 
     if (text === "❌ Sil") {
 
@@ -282,7 +268,6 @@ bot.on("message", async (msg) => {
         waitingForInput[chatId] = false;
 
         bot.sendMessage(chatId,"Silmek için ID yaz:");
-
         return;
     }
 
@@ -291,10 +276,8 @@ bot.on("message", async (msg) => {
         const id = parseInt(text);
 
         if (isNaN(id)) {
-
             waitingForDelete[chatId] = false;
             return;
-
         }
 
         const { date } = getDateTime();
@@ -306,20 +289,15 @@ bot.on("message", async (msg) => {
         });
 
         if (dailyTransactions[date]) {
-
             dailyTransactions[date] =
             dailyTransactions[date].filter(t => t.id !== id);
-
         }
 
-        bot.sendMessage(chatId, "#" + id + " silindi ❌");
+        bot.sendMessage(chatId,"#" + id + " silindi ❌");
 
         waitingForDelete[chatId] = false;
-
         return;
     }
-
-    /* ================= VERİ GİR ================= */
 
     if (waitingForInput[chatId]) {
 
@@ -328,18 +306,14 @@ bot.on("message", async (msg) => {
         if (parts.length !== 2 || isNaN(parts[1])) {
 
             if (!errorCount[chatId]) {
-
                 errorCount[chatId] = 1;
                 bot.sendMessage(chatId,"Hatalı işlem tekrar dene");
                 return;
-
             } else {
-
                 bot.sendMessage(chatId,"İşlem iptal edildi");
                 waitingForInput[chatId] = false;
                 errorCount[chatId] = 0;
                 return;
-
             }
         }
 
@@ -353,12 +327,10 @@ bot.on("message", async (msg) => {
         let provider = null;
 
         for (let key in providerMap) {
-
             if (groupName.includes(key)) {
                 provider = providerMap[key];
                 break;
             }
-
         }
 
         if (!provider) {
@@ -370,10 +342,8 @@ bot.on("message", async (msg) => {
         const id = await getNextId(date);
 
         if (!dailyData[date]) {
-
             dailyData[date] = {};
             dailyTransactions[date] = [];
-
         }
 
         if (!dailyData[date][provider])
@@ -402,7 +372,6 @@ bot.on("message", async (msg) => {
 "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅");
 
         waitingForInput[chatId] = false;
-
         return;
     }
 
@@ -427,7 +396,6 @@ function sendDailyFinanceReport() {
     Object.keys(dailyData[date]).forEach(provider => {
 
         const amount = dailyData[date][provider];
-
         total += amount;
 
         text += provider + ": " + amount + " TRY\n";
@@ -451,10 +419,7 @@ setInterval(() => {
     });
 
     if (now === "23:50") {
-
         sendDailyFinanceReport();
-
     }
 
 },60000);
-```
