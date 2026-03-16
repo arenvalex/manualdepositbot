@@ -1,3 +1,4 @@
+```javascript
 const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
 
@@ -12,11 +13,8 @@ let dailyData = {};
 let dailyTransactions = {};
 let errorCount = {};
 
-/* ================= FINANS RAPOR GRUBU ================= */
-
 const FINANS_GRUP_ID = -1005035282347;
 
-/* ✅ WHITELIST */
 const allowedUsers = [
     8467771210,
     5340962409,
@@ -31,8 +29,6 @@ const allowedUsers = [
     8473156805
 ];
 
-/* ================= TÜRKÇE NORMALIZE ================= */
-
 function normalizeText(text) {
     return text
         .toLowerCase()
@@ -43,8 +39,6 @@ function normalizeText(text) {
         .replace(/ö/g, "o")
         .replace(/ç/g, "c");
 }
-
-/* ================= PROVIDER MAP ================= */
 
 const providerMap = {
     "sahin": "Şahin",
@@ -60,8 +54,6 @@ const providerMap = {
     "dream": "Dream",
     "manuel": "Manuel Test"
 };
-
-/* ================= DATE ================= */
 
 function getDateTime() {
 
@@ -83,8 +75,6 @@ function getDateTime() {
 
     return { date, time };
 }
-
-/* ================= GÜNLÜK ID ================= */
 
 async function getNextId(date) {
 
@@ -115,8 +105,6 @@ async function getNextId(date) {
     }
 }
 
-/* ================= SHEET ================= */
-
 async function sendToSheet(data) {
 
     try {
@@ -133,8 +121,6 @@ async function sendToSheet(data) {
 
     }
 }
-
-/* ================= EXCEL'DEN BUGÜNÜ YÜKLE ================= */
 
 async function loadTodayData() {
 
@@ -179,8 +165,6 @@ async function loadTodayData() {
     }
 }
 
-/* ================= MENU ================= */
-
 function showMenu(chatId) {
 
     bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
@@ -194,8 +178,6 @@ function showMenu(chatId) {
     });
 }
 
-/* ================= START ================= */
-
 bot.onText(/\/start/, (msg) => {
 
     if (!allowedUsers.includes(msg.from.id)) return;
@@ -203,8 +185,6 @@ bot.onText(/\/start/, (msg) => {
     showMenu(msg.chat.id);
 
 });
-
-/* ================= MESSAGE ================= */
 
 bot.on("message", async (msg) => {
 
@@ -289,8 +269,16 @@ bot.on("message", async (msg) => {
         });
 
         if (dailyTransactions[date]) {
+
+            const deleted = dailyTransactions[date].find(t => t.id === id);
+
+            if (deleted && dailyData[date][deleted.provider]) {
+                dailyData[date][deleted.provider] -= Number(deleted.amount);
+            }
+
             dailyTransactions[date] =
             dailyTransactions[date].filter(t => t.id !== id);
+
         }
 
         bot.sendMessage(chatId,"#" + id + " silindi ❌");
@@ -377,11 +365,7 @@ bot.on("message", async (msg) => {
 
 });
 
-/* BOT BAŞLAYINCA VERİ YÜKLE */
-
 loadTodayData();
-
-/* ================= GÜN SONU RAPOR ================= */
 
 function sendDailyFinanceReport() {
 
@@ -408,8 +392,6 @@ function sendDailyFinanceReport() {
 
 }
 
-/* ================= 23:50 TIMER ================= */
-
 setInterval(() => {
 
     const now = new Date().toLocaleTimeString("tr-TR", {
@@ -423,3 +405,4 @@ setInterval(() => {
     }
 
 },60000);
+```
