@@ -52,6 +52,7 @@ const providerMap = {
     "cryptobox": "Cryptobox",
     "easy": "Easy",
     "dream": "Dream",
+    "EVAPAY": "Evapay",
     "manuel": "Manuel Test"
 };
 
