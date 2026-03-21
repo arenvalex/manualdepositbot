@@ -190,6 +190,7 @@ bot.onText(/\/start/, (msg) => {
 bot.onText(/\/id/, (msg) => {
     bot.sendMessage(msg.chat.id, "Chat ID: " + msg.chat.id);
 });
+
 /* ================= RAPOR KOMUTU ================= */
 
 bot.onText(/\/rapor/, (msg) => {
@@ -238,7 +239,12 @@ bot.on("message", async (msg) => {
         waitingForDelete[chatId] = false;
         errorCount[chatId] = 0;
 
-        bot.sendMessage(chatId,"Kullanıcı ve tutar yaz:\nörnek: test1 1500");
+        const sent = await bot.sendMessage(chatId,"Kullanıcı ve tutar yaz:\nörnek: test1 1500");
+
+        setTimeout(() => {
+            bot.deleteMessage(chatId, sent.message_id).catch(() => {});
+        }, 60000);
+
         return;
     }
 
@@ -395,7 +401,11 @@ bot.on("message", async (msg) => {
         });
 
         bot.sendMessage(chatId,
-"#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅");
+        "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅");
+
+        setTimeout(() => {
+            bot.deleteMessage(chatId, msg.message_id).catch(() => {});
+        }, 60000);
 
         waitingForInput[chatId] = false;
         return;
