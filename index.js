@@ -272,13 +272,19 @@ bot.on("callback_query", async (query) => {
 
 /* ================= RAPOR ================= */
 
-bot.onText(/\/rapor/, (msg) => {
+bot.onText(/\/rapor/, async (msg) => {
 
     if (!allowedUsers.includes(msg.from.id)) return;
 
     if (msg.chat.id !== FINANS_GRUP_ID) return;
 
     const { date } = getDateTime();
+
+    /* 🔥 RAM YOKSA ÇEK */
+    if (!dailyData[date]) {
+        console.log("RAM boş → yükleniyor");
+        await loadTodayData();
+    }
 
     let text = "📊 Günlük Finans Özeti - " + date + "\n\n";
 
