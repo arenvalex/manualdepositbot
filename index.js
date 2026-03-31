@@ -416,7 +416,53 @@ if (waitingForInput[chatId]?.active) {
 
 });
 
-loadTodayData();
+async function loadTodayData() {
+
+    const { date } = getDateTime();
+
+    try {
+
+        console.log("LOAD BAŞLADI 🔄");
+
+        const response = await fetch(SHEET_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                action: "GET_TODAY",
+                date: date
+            })
+        });
+
+        const data = await response.json();
+
+        console.log("GELEN DATA:", data);
+
+        if (!data || !data.length) {
+            console.log("Sheet boş geldi ⚠️");
+            return;
+        }
+
+        dailyTransactions[date] = [];
+        dailyData[date] = {};
+
+        data.forEach(t => {
+
+            dailyTransactions[date].push(t);
+
+            if (!dailyData[date][t.provider]) {
+                dailyData[date][t.provider] = 0;
+            }
+
+            dailyData[date][t.provider] += Number(t.amount);
+        });
+
+        console.log("Excel verileri RAM'e yüklendi ✅");
+
+    } catch (err) {
+
+        console.log("Excel load error:", err);
+    }
+}
 
 /* ================= GÜN SONU ================= */
 
