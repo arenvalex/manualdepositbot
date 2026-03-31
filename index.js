@@ -211,15 +211,19 @@ bot.on("callback_query", async (query) => {
 
   /* ===== EKLE ===== */
   if (data === "ekle") {
-    waitingForInput[chatId].active = true;
 
-    const inputMsg = await bot.sendMessage(
-      chatId,
-      "Kullanıcı ve tutar yaz:\nörnek: test1 1500"
-    );
+  waitingForInput[chatId] = {
+    active: true,
+    inputMsgId: null
+  };
 
-    waitingForInput[chatId].inputMsgId = inputMsg.message_id;
-  }
+  const inputMsg = await bot.sendMessage(
+    chatId,
+    "Kullanıcı ve tutar yaz:\nörnek: test1 1500"
+  );
+
+  waitingForInput[chatId].inputMsgId = inputMsg.message_id;
+}
 
   /* ===== OZET ===== */
   else if (data === "ozet") {
