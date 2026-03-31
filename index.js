@@ -2,7 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const fetch = require('node-fetch');
 
 const token = process.env.TOKEN;
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbw06sdk4frd1_-2j4UmZXsrjuQ7lvdikyjR-b7MJvJ5Bs6G7DIbBvoO5rp7wV3ZlNbw/exec";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbyDiTCIKezOwWExTxoDrwT6Uq-ZcxG5bCUuWQBa-EIWVBeebTN-IRjzVibJd_-wGsx2/exec";
 
 const bot = new TelegramBot(token);
 
@@ -396,18 +396,16 @@ if (waitingForInput[chatId]?.active) {
 
     setTimeout(() => {
 
-        if (ids?.startMsgId)
-            bot.deleteMessage(chatId, ids.startMsgId).catch(() => {});
+    if (ids?.startMsgId)
+        bot.deleteMessage(chatId, ids.startMsgId).catch(() => {});
 
-        if (ids?.panelMsgId)
-            bot.deleteMessage(chatId, ids.panelMsgId).catch(() => {});
+    if (ids?.panelMsgId)
+        bot.deleteMessage(chatId, ids.panelMsgId).catch(() => {});
 
-        if (ids?.inputMsgId)
-            bot.deleteMessage(chatId, ids.inputMsgId).catch(() => {});
+    if (ids?.inputMsgId)
+        bot.deleteMessage(chatId, ids.inputMsgId).catch(() => {});
 
-        bot.deleteMessage(chatId, resultMsg.message_id).catch(() => {});
-
-    }, 40000);
+}, 40000);
 
     waitingForInput[chatId] = null;
 
