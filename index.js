@@ -245,7 +245,7 @@ bot.on("callback_query", async (query) => {
     }
 
     if (!dailyData[date][provider]) {
-      return bot.sendMessage(chatId, "veri yok");
+      return bot.sendMessage(chatId, "bu grup için veri yok");
     }
 
     let summary = `📊 ${date} - ${provider} Özeti\n\n`;
