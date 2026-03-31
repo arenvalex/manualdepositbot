@@ -194,9 +194,9 @@ bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
 
   // 🔥 KLAVYEYİ KALDIR
-  await bot.sendMessage(chatId, " ", {
-    reply_markup: {
-      remove_keyboard: true
+  await bot.sendMessage(chatId, ".", {
+  reply_markup: {
+    remove_keyboard: true
     }
   });
 
