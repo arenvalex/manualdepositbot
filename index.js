@@ -324,8 +324,8 @@ if (text.startsWith("/rapor")) {
 
   console.log("RAPOR ÇALIŞTI");
 
-  if (msg.chat.id !== FINANS_GRUP_ID) return;
-
+// if (msg.chat.id !== FINANS_GRUP_ID) return;
+  
   const { date } = getDateTime();
 
   if (!dailyData[date]) {
