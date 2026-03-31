@@ -191,9 +191,18 @@ async function showMenu(chatId) {
 bot.onText(/\/start/, async (msg) => {
   if (!allowedUsers.includes(msg.from.id)) return;
 
-  const panelMsg = await showMenu(msg.chat.id);
+  const chatId = msg.chat.id;
 
-  waitingForInput[msg.chat.id] = {
+  // 🔥 KLAVYEYİ KALDIR
+  await bot.sendMessage(chatId, " ", {
+    reply_markup: {
+      remove_keyboard: true
+    }
+  });
+
+  const panelMsg = await showMenu(chatId);
+
+  waitingForInput[chatId] = {
     startMsgId: msg.message_id,
     panelMsgId: panelMsg.message_id,
     inputMsgId: null,
