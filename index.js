@@ -422,8 +422,6 @@ async function loadTodayData() {
 
     try {
 
-        console.log("LOAD BAŞLADI 🔄");
-
         const response = await fetch(SHEET_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -435,12 +433,7 @@ async function loadTodayData() {
 
         const data = await response.json();
 
-        console.log("GELEN DATA:", data);
-
-        if (!data || !data.length) {
-            console.log("Sheet boş geldi ⚠️");
-            return;
-        }
+        if (!data.length) return;
 
         dailyTransactions[date] = [];
         dailyData[date] = {};
@@ -454,13 +447,15 @@ async function loadTodayData() {
             }
 
             dailyData[date][t.provider] += Number(t.amount);
+
         });
 
-        console.log("Excel verileri RAM'e yüklendi ✅");
+        console.log("Excel verileri RAM'e yüklendi.");
 
     } catch (err) {
 
         console.log("Excel load error:", err);
+
     }
 }
 
