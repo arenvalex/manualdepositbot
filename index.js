@@ -175,7 +175,7 @@ inline_keyboard: [
 
 /* ================= START ================= */
 
-bot.onText(//start/, (msg) => {
+bot.onText(/\/start/, (msg) => {
 if (!allowedUsers.includes(msg.from.id)) return;
 
 
