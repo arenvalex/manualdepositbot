@@ -117,42 +117,6 @@ console.log("Sheet Error:", err);
 }
 }
 
-async function loadTodayData() {
-const { date } = getDateTime();
-
-try {
-    const response = await fetch(SHEET_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            action: "GET_TODAY",
-            date: date
-        })
-    });
-
-    const data = await response.json();
-
-    if (!data.length) return;
-
-    dailyTransactions[date] = [];
-    dailyData[date] = {};
-
-    data.forEach(t => {
-        dailyTransactions[date].push(t);
-
-        if (!dailyData[date][t.provider]) {
-            dailyData[date][t.provider] = 0;
-        }
-
-        dailyData[date][t.provider] += Number(t.amount);
-    });
-
-} catch (err) {
-    console.log("Excel load error:", err);
-}
-
-}
-
 /* ================= MENU ================= */
 
 async function showMenu(chatId) {
