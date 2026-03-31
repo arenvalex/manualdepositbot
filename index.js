@@ -62,8 +62,10 @@ const providerMap = {
 };
 
 function getDateTime() {
+
+```
 const now = new Date();
-    
+
 const date = now.toLocaleDateString("tr-TR", {
     timeZone: "Europe/Istanbul",
     day: "2-digit",
@@ -79,47 +81,67 @@ const time = now.toLocaleTimeString("tr-TR", {
 });
 
 return { date, time };
+```
 
 }
 
 async function getNextId(date) {
+
+```
 try {
-const response = await fetch(SHEET_URL, {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-action: "GET_NEXT_ID",
-date: date
-})
-});
+
+    const response = await fetch(SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            action: "GET_NEXT_ID",
+            date: date
+        })
+    });
 
     const data = await response.json();
-    if (!data.id || isNaN(data.id)) return 1;
+
+    if (!data.id || isNaN(data.id)) {
+        return 1;
+    }
 
     return data.id;
 
 } catch (err) {
+
     console.log("ID fetch error:", err);
     return 1;
+}
+```
 
 }
 
 async function sendToSheet(data) {
+
+```
 try {
-await fetch(SHEET_URL, {
-method: "POST",
-headers: { "Content-Type": "application/json" },
-body: JSON.stringify(data)
-});
+
+    await fetch(SHEET_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+
 } catch (err) {
-console.log("Sheet Error:", err);
+
+    console.log("Sheet Error:", err);
 }
+```
+
 }
 
 async function loadTodayData() {
+
+```
 const { date } = getDateTime();
 
 try {
+
     const response = await fetch(SHEET_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -137,6 +159,7 @@ try {
     dailyData[date] = {};
 
     data.forEach(t => {
+
         dailyTransactions[date].push(t);
 
         if (!dailyData[date][t.provider]) {
@@ -149,41 +172,48 @@ try {
     console.log("Excel verileri RAM'e yüklendi.");
 
 } catch (err) {
+
     console.log("Excel load error:", err);
 }
-
+```
 
 }
 
 /* ================= INLINE MENU ================= */
 
 function showMenu(chatId) {
+
+```
 bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
-reply_markup: {
-inline_keyboard: [
-[
-{ text: "➕ Ekle", callback_data: "ekle" },
-{ text: "📊 Özet", callback_data: "ozet" }
-],
-[
-{ text: "❌ Sil", callback_data: "sil" }
-]
-]
-}
+    reply_markup: {
+        inline_keyboard: [
+            [
+                { text: "➕ Ekle", callback_data: "ekle" },
+                { text: "📊 Özet", callback_data: "ozet" }
+            ],
+            [
+                { text: "❌ Sil", callback_data: "sil" }
+            ]
+        ]
+    }
 });
+```
+
 }
 
 /* ================= START ================= */
 
-bot.onText(/\/start/, (msg) => {
-if (!allowedUsers.includes(msg.from.id)) return;
+bot.onText(//start/, (msg) => {
 
+```
+if (!allowedUsers.includes(msg.from.id)) return;
 
 bot.sendMessage(msg.chat.id, " ", {
     reply_markup: { remove_keyboard: true }
 });
 
 showMenu(msg.chat.id);
+```
 
 });
 
@@ -191,17 +221,19 @@ showMenu(msg.chat.id);
 
 bot.on("callback_query", async (query) => {
 
+```
 const chatId = query.message.chat.id;
 const data = query.data;
 
 if (!allowedUsers.includes(query.from.id)) return;
 
 if (data === "ekle") {
+
     waitingForInput[chatId] = true;
     waitingForDelete[chatId] = false;
     errorCount[chatId] = 0;
 
-    bot.sendMessage(chatId,"Kullanıcı ve tutar yaz:\nörnek: test1 1500");
+    bot.sendMessage(chatId, "Kullanıcı ve tutar yaz:\nörnek: test1 1500");
 }
 
 if (data === "ozet") {
@@ -219,12 +251,12 @@ if (data === "ozet") {
     }
 
     if (!provider) {
-        bot.sendMessage(chatId,"Bu grup için saha eşleşmesi bulunamadı.");
+        bot.sendMessage(chatId, "Bu grup için saha eşleşmesi bulunamadı.");
         return;
     }
 
     if (!dailyData[date] || !dailyData[date][provider]) {
-        bot.sendMessage(chatId,"Bugün bu saha için işlem yok.");
+        bot.sendMessage(chatId, "Bugün bu saha için işlem yok.");
         return;
     }
 
@@ -233,29 +265,32 @@ if (data === "ozet") {
     summary += "📝 İşlemler:\n";
 
     dailyTransactions[date]
-    .filter(t => t.provider === provider)
-    .forEach(t => {
-        summary += "#" + t.id + " | " + t.username + " - " + t.amount + " TRY\n";
-    });
+        .filter(t => t.provider === provider)
+        .forEach(t => {
+            summary += "#" + t.id + " | " + t.username + " - " + t.amount + " TRY\n";
+        });
 
-    bot.sendMessage(chatId,summary);
+    bot.sendMessage(chatId, summary);
 }
 
 if (data === "sil") {
+
     waitingForDelete[chatId] = true;
     waitingForInput[chatId] = false;
 
-    bot.sendMessage(chatId,"Silmek için ID yaz:");
+    bot.sendMessage(chatId, "Silmek için ID yaz:");
 }
 
 bot.answerCallbackQuery(query.id);
+```
 
 });
 
 /* ================= RAPOR ================= */
 
-bot.onText(/\/rapor/, (msg) => {
+bot.onText(//rapor/, (msg) => {
 
+```
 if (!allowedUsers.includes(msg.from.id)) return;
 if (msg.chat.id !== FINANS_GRUP_ID) return;
 
@@ -265,6 +300,7 @@ let text = "📊 Günlük Finans Özeti - " + date + "\n\n";
 let total = 0;
 
 Object.values(providerMap).forEach(provider => {
+
     let amount = 0;
 
     if (dailyData[date] && dailyData[date][provider]) {
@@ -278,6 +314,7 @@ Object.values(providerMap).forEach(provider => {
 text += "\n💰 Genel Toplam: " + total + " TRY";
 
 bot.sendMessage(msg.chat.id, text);
+```
 
 });
 
@@ -285,6 +322,7 @@ bot.sendMessage(msg.chat.id, text);
 
 bot.on("message", async (msg) => {
 
+```
 if (!msg.text) return;
 if (!allowedUsers.includes(msg.from.id)) return;
 
@@ -304,19 +342,7 @@ if (waitingForDelete[chatId]) {
         date: date
     });
 
-    if (dailyTransactions[date]) {
-
-        const deleted = dailyTransactions[date].find(t => t.id === id);
-
-        if (deleted && dailyData[date][deleted.provider]) {
-            dailyData[date][deleted.provider] -= Number(deleted.amount);
-        }
-
-        dailyTransactions[date] =
-            dailyTransactions[date].filter(t => t.id !== id);
-    }
-
-    bot.sendMessage(chatId,"#" + id + " silindi ❌");
+    bot.sendMessage(chatId, "#" + id + " silindi ❌");
     showMenu(chatId);
 
     waitingForDelete[chatId] = false;
@@ -328,7 +354,7 @@ if (waitingForInput[chatId]) {
     const parts = text.trim().split(" ");
 
     if (parts.length !== 2 || isNaN(parts[1])) {
-        bot.sendMessage(chatId,"Hatalı işlem tekrar dene");
+        bot.sendMessage(chatId, "Hatalı işlem tekrar dene");
         return;
     }
 
@@ -347,7 +373,7 @@ if (waitingForInput[chatId]) {
     }
 
     if (!provider) {
-        bot.sendMessage(chatId,"Bu grup için saha eşleşmesi bulunamadı.");
+        bot.sendMessage(chatId, "Bu grup için saha eşleşmesi bulunamadı.");
         return;
     }
 
@@ -359,17 +385,11 @@ if (waitingForInput[chatId]) {
         dailyTransactions[date] = [];
     }
 
-    if (!dailyData[date][provider])
+    if (!dailyData[date][provider]) {
         dailyData[date][provider] = 0;
+    }
 
     dailyData[date][provider] += amount;
-
-    dailyTransactions[date].push({
-        id,
-        username,
-        amount,
-        provider
-    });
 
     await sendToSheet({
         id,
@@ -382,13 +402,15 @@ if (waitingForInput[chatId]) {
     });
 
     bot.sendMessage(chatId,
-    "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅");
+        "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅"
+    );
 
     showMenu(chatId);
 
     waitingForInput[chatId] = false;
     return;
 }
+```
 
 });
 
@@ -398,6 +420,7 @@ loadTodayData();
 
 function sendDailyFinanceReport() {
 
+```
 const { date } = getDateTime();
 
 let text = "📊 Gün Sonu Finans Raporu - " + date + "\n\n";
@@ -419,12 +442,14 @@ Object.values(providerMap).forEach(provider => {
 
 text += "\n💰 Genel Toplam: " + total + " TRY";
 
-bot.sendMessage(FINANS_GRUP_ID,text);
+bot.sendMessage(FINANS_GRUP_ID, text);
+```
 
 }
 
 setInterval(() => {
 
+```
 const now = new Date().toLocaleTimeString("tr-TR", {
     timeZone: "Europe/Istanbul",
     hour: "2-digit",
@@ -434,5 +459,6 @@ const now = new Date().toLocaleTimeString("tr-TR", {
 if (now === "23:50") {
     sendDailyFinanceReport();
 }
+```
 
-},60000);
+}, 60000);
