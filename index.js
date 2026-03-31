@@ -193,7 +193,7 @@ bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
 
 /* ================= START ================= */
 
-bot.onText(//start/, (msg) => {
+bot.onText(/\/start/, (msg) => {
 
 if (!allowedUsers.includes(msg.from.id)) return;
 
@@ -274,7 +274,7 @@ bot.answerCallbackQuery(query.id);
 
 /* ================= RAPOR ================= */
 
-bot.onText(//rapor/, (msg) => {
+bot.onText(/\/rapor/, (msg) => {
 
 if (!allowedUsers.includes(msg.from.id)) return;
 if (msg.chat.id !== FINANS_GRUP_ID) return;
