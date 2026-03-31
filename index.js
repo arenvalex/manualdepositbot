@@ -319,6 +319,39 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
+/* ===== RAPOR FIX ===== */
+if (text.startsWith("/rapor")) {
+
+  console.log("RAPOR ÇALIŞTI");
+
+  if (msg.chat.id !== FINANS_GRUP_ID) return;
+
+  const { date } = getDateTime();
+
+  if (!dailyData[date]) {
+    console.log("RAM boş → yükleniyor");
+    await loadTodayData();
+  }
+
+  let total = 0;
+  let rapor = `📊 Günlük Finans Özeti - ${date}\n\n`;
+
+  Object.values(providerMap).forEach(p => {
+
+    const val = dailyData[date]?.[p] || 0;
+
+    total += val;
+
+    rapor += `${p}: ${val} TRY\n`;
+  });
+
+  rapor += `\n💰 Genel Toplam: ${total} TRY`;
+
+  bot.sendMessage(chatId, rapor);
+
+  return;
+}
+  
   /* ===== DELETE ===== */
   if (waitingForDelete[chatId]) {
 
