@@ -326,7 +326,6 @@ if (waitingForDelete[chatId]) {
     });
 
     bot.sendMessage(chatId, "#" + id + " silindi ❌");
-    showMenu(chatId);
 
     waitingForDelete[chatId] = false;
     return;
@@ -388,7 +387,6 @@ if (waitingForInput[chatId]) {
         "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅"
     );
 
-    showMenu(chatId);
 
     waitingForInput[chatId] = false;
     return;
