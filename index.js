@@ -213,9 +213,10 @@ bot.on("callback_query", async (query) => {
   if (data === "ekle") {
 
   waitingForInput[chatId] = {
-    active: true,
-    inputMsgId: null
-  };
+  active: true,
+  inputMsgId: null,
+  errorCount: 0
+};
 
   const inputMsg = await bot.sendMessage(
     chatId,
@@ -400,9 +401,28 @@ if (text.startsWith("/rapor")) {
   if (waitingForInput[chatId]?.active) {
     const parts = text.trim().split(" ");
 
-    if (parts.length !== 2 || isNaN(parts[1])) {
-      return bot.sendMessage(chatId, "hatalı");
-    }
+   if (parts.length !== 2 || isNaN(parts[1])) {
+
+  if (!waitingForInput[chatId]) return;
+
+  waitingForInput[chatId].errorCount++;
+
+  if (waitingForInput[chatId].errorCount >= 2) {
+
+    bot.sendMessage(chatId,
+      "❌ 2 kez hatalı giriş yaptın\n/start ile tekrar başlat"
+    );
+
+    waitingForInput[chatId] = null;
+    return;
+  }
+
+  bot.sendMessage(chatId,
+    "⚠️ Hatalı format\nörnek: test1 1500"
+  );
+
+  return;
+}
 
     const username = parts[0];
     const amount = parseFloat(parts[1]);
@@ -455,9 +475,28 @@ if (text.startsWith("/rapor")) {
   "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅"
 );
 
-    waitingForInput[chatId] = null;
-  }
-});
+const ids = waitingForInput[chatId];
+
+setTimeout(() => {
+
+  if (ids?.startMsgId)
+    bot.deleteMessage(chatId, ids.startMsgId).catch(()=>{});
+
+  if (ids?.panelMsgId)
+    bot.deleteMessage(chatId, ids.panelMsgId).catch(()=>{});
+
+  if (ids?.inputMsgId)
+    bot.deleteMessage(chatId, ids.inputMsgId).catch(()=>{});
+
+  if (ids?.userMsgId)
+    bot.deleteMessage(chatId, ids.userMsgId).catch(()=>{});
+
+}, 4500);
+
+// 🔥 EN SON
+waitingForInput[chatId] = null;
+    return;
+}
 
 /* ================= GÜN SONU ================= */
 
