@@ -287,18 +287,41 @@ bot.on("message", async (msg) => {
       if (groupName.includes(key)) {
         provider = providerMap[key];
         break;
-      }
+      else if (data === "ozet") {
+
+  const { date } = getDateTime();
+
+  if (!dailyData[date]) await loadTodayData();
+
+  const groupName = normalizeText(q.message.chat.title || "");
+
+  let provider = null;
+
+  for (let key in providerMap) {
+    if (groupName.includes(key)) {
+      provider = providerMap[key];
+      break;
     }
+  }
 
-    if (!provider) return bot.sendMessage(chatId, "eşleşme yok");
+  if (!provider) {
+    return bot.sendMessage(chatId, "eşleşme yok");
+  }
 
-    const { date, time } = getDateTime();
-    const id = await getNextId(date);
+  const total = dailyData[date][provider] || 0;
 
-    if (!dailyData[date]) {
-      dailyData[date] = {};
-      dailyTransactions[date] = [];
-    }
+  let txt = `📊 ${date} - ${provider} Özeti\n\n`;
+  txt += `Toplam: ${total} TRY\n\n`;
+  txt += `📝 İşlemler:\n`;
+
+  (dailyTransactions[date] || [])
+    .filter(t => t.provider === provider)
+    .forEach(t => {
+      txt += `#${t.id} | ${t.username} - ${t.amount} TRY\n`;
+    });
+
+  bot.sendMessage(chatId, txt);
+}
 
     dailyData[date][provider] =
       (dailyData[date][provider] || 0) + amount;
