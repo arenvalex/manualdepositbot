@@ -272,29 +272,36 @@ bot.on("callback_query", async (query) => {
 
 /* ================= RAPOR ================= */
 
-bot.onText(/\/rapor/, async (msg) => {
-  if (!allowedUsers.includes(msg.from.id)) return;
-  if (msg.chat.id !== FINANS_GRUP_ID) return;
+bot.onText(/\/rapor/, (msg) => {
 
-  const { date } = getDateTime();
+    if (!allowedUsers.includes(msg.from.id)) return;
 
-  if (!dailyData[date]) {
-    await loadTodayData();
-  }
+    if (msg.chat.id !== FINANS_GRUP_ID) return;
 
-  let total = 0;
-  let text = `📊 Günlük Finans Özeti - ${date}\n\n`;
+    const { date } = getDateTime();
 
-  Object.values(providerMap).forEach((provider) => {
-    const amount = dailyData[date]?.[provider] || 0;
-    total += amount;
+    let text = "📊 Günlük Finans Özeti - " + date + "\n\n";
 
-    text += `${provider}: ${amount} TRY\n`;
-  });
+    let total = 0;
 
-  text += `\n💰 Genel Toplam: ${total} TRY`;
+    Object.values(providerMap).forEach(provider => {
 
-  bot.sendMessage(msg.chat.id, text);
+        let amount = 0;
+
+        if (dailyData[date] && dailyData[date][provider]) {
+            amount = dailyData[date][provider];
+        }
+
+        total += amount;
+
+        text += provider + ": " + amount + " TRY\n";
+
+    });
+
+    text += "\n💰 Genel Toplam: " + total + " TRY";
+
+    bot.sendMessage(msg.chat.id, text);
+
 });
 
 /* ================= MESSAGE ================= */
