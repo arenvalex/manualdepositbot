@@ -4,7 +4,11 @@ const fetch = require('node-fetch');
 const token = process.env.TOKEN;
 const SHEET_URL = "https://script.google.com/macros/s/AKfycbw06sdk4frd1_-2j4UmZXsrjuQ7lvdikyjR-b7MJvJ5Bs6G7DIbBvoO5rp7wV3ZlNbw/exec";
 
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token);
+
+bot.deleteWebHook().then(() => {
+    bot.startPolling();
+});
 
 let waitingForInput = {};
 let waitingForDelete = {};
