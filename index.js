@@ -63,7 +63,6 @@ const providerMap = {
 
 function getDateTime() {
 
-```
 const now = new Date();
 
 const date = now.toLocaleDateString("tr-TR", {
@@ -81,13 +80,11 @@ const time = now.toLocaleTimeString("tr-TR", {
 });
 
 return { date, time };
-```
 
 }
 
 async function getNextId(date) {
 
-```
 try {
 
     const response = await fetch(SHEET_URL, {
@@ -112,13 +109,11 @@ try {
     console.log("ID fetch error:", err);
     return 1;
 }
-```
 
 }
 
 async function sendToSheet(data) {
 
-```
 try {
 
     await fetch(SHEET_URL, {
@@ -131,13 +126,11 @@ try {
 
     console.log("Sheet Error:", err);
 }
-```
 
 }
 
 async function loadTodayData() {
 
-```
 const { date } = getDateTime();
 
 try {
@@ -175,7 +168,6 @@ try {
 
     console.log("Excel load error:", err);
 }
-```
 
 }
 
@@ -183,7 +175,6 @@ try {
 
 function showMenu(chatId) {
 
-```
 bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
     reply_markup: {
         inline_keyboard: [
@@ -197,7 +188,6 @@ bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
         ]
     }
 });
-```
 
 }
 
@@ -205,7 +195,6 @@ bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
 
 bot.onText(//start/, (msg) => {
 
-```
 if (!allowedUsers.includes(msg.from.id)) return;
 
 bot.sendMessage(msg.chat.id, " ", {
@@ -213,7 +202,6 @@ bot.sendMessage(msg.chat.id, " ", {
 });
 
 showMenu(msg.chat.id);
-```
 
 });
 
@@ -221,7 +209,6 @@ showMenu(msg.chat.id);
 
 bot.on("callback_query", async (query) => {
 
-```
 const chatId = query.message.chat.id;
 const data = query.data;
 
@@ -282,7 +269,6 @@ if (data === "sil") {
 }
 
 bot.answerCallbackQuery(query.id);
-```
 
 });
 
@@ -290,7 +276,6 @@ bot.answerCallbackQuery(query.id);
 
 bot.onText(//rapor/, (msg) => {
 
-```
 if (!allowedUsers.includes(msg.from.id)) return;
 if (msg.chat.id !== FINANS_GRUP_ID) return;
 
@@ -314,7 +299,6 @@ Object.values(providerMap).forEach(provider => {
 text += "\n💰 Genel Toplam: " + total + " TRY";
 
 bot.sendMessage(msg.chat.id, text);
-```
 
 });
 
@@ -322,7 +306,6 @@ bot.sendMessage(msg.chat.id, text);
 
 bot.on("message", async (msg) => {
 
-```
 if (!msg.text) return;
 if (!allowedUsers.includes(msg.from.id)) return;
 
@@ -410,7 +393,6 @@ if (waitingForInput[chatId]) {
     waitingForInput[chatId] = false;
     return;
 }
-```
 
 });
 
@@ -420,7 +402,6 @@ loadTodayData();
 
 function sendDailyFinanceReport() {
 
-```
 const { date } = getDateTime();
 
 let text = "📊 Gün Sonu Finans Raporu - " + date + "\n\n";
@@ -443,13 +424,11 @@ Object.values(providerMap).forEach(provider => {
 text += "\n💰 Genel Toplam: " + total + " TRY";
 
 bot.sendMessage(FINANS_GRUP_ID, text);
-```
 
 }
 
 setInterval(() => {
 
-```
 const now = new Date().toLocaleTimeString("tr-TR", {
     timeZone: "Europe/Istanbul",
     hour: "2-digit",
@@ -459,6 +438,5 @@ const now = new Date().toLocaleTimeString("tr-TR", {
 if (now === "23:50") {
     sendDailyFinanceReport();
 }
-```
 
 }, 60000);
