@@ -450,7 +450,10 @@ if (text.startsWith("/rapor")) {
       type: "EKLE"
     });
 
-    bot.sendMessage(chatId, `#${id} eklendi`);
+    bot.sendMessage(
+  chatId,
+  "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅"
+);
 
     waitingForInput[chatId] = null;
   }
