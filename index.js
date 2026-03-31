@@ -7,7 +7,7 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbyHaSKcRznP6KsjUVmuSa
 const bot = new TelegramBot(token);
 
 bot.deleteWebHook().then(() => {
-bot.startPolling();
+  bot.startPolling();
 });
 
 let waitingForInput = {};
@@ -18,250 +18,234 @@ let dailyTransactions = {};
 const FINANS_GRUP_ID = -5035282347;
 
 const allowedUsers = [
-8467771210,5340962409,6855450336,1382439300,8217946285,
-8153108008,649401002,8139153707,1409197362,1617214857,
-5236903171,8473156805
+8467771210,5340962409,6855450336,1382439300,
+8217946285,8153108008,649401002,8139153707,
+1409197362,1617214857,5236903171,8473156805
 ];
 
 function normalizeText(text) {
 return text.toLowerCase()
-.replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u")
-.replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c");
+.replace(/ı/g,"i").replace(/ğ/g,"g")
+.replace(/ü/g,"u").replace(/ş/g,"s")
+.replace(/ö/g,"o").replace(/ç/g,"c");
 }
 
 const providerMap = {
-"sahin":"Şahin","jorpay":"Jorpay","master":"Master","karahan":"Karahan",
-"kartal":"Kartal","ezel":"Ezel","bizans":"Bizans","garanti":"Garanti QR",
-"cryptobox":"Cryptobox","easy":"Easy","dream":"Dream","atlas":"Atlas",
+"sahin":"Şahin","jorpay":"Jorpay","master":"Master",
+"karahan":"Karahan","kartal":"Kartal","ezel":"Ezel",
+"bizans":"Bizans","garanti":"Garanti QR","cryptobox":"Cryptobox",
+"easy":"Easy","dream":"Dream","atlas":"Atlas",
 "evapay":"Evapay","manuel":"Manuel Test"
 };
 
-function getDateTime(){
-const now=new Date();
-
-const date=now.toLocaleDateString("tr-TR",{
-timeZone:"Europe/Istanbul",
-day:"2-digit",
-month:"2-digit",
-year:"numeric"
-});
-
-const time=now.toLocaleTimeString("tr-TR",{
-timeZone:"Europe/Istanbul",
-hour:"2-digit",
-minute:"2-digit",
-second:"2-digit"
-});
-
-return {date,time};
+function getDateTime() {
+const now = new Date();
+return {
+date: now.toLocaleDateString("tr-TR",{timeZone:"Europe/Istanbul"}),
+time: now.toLocaleTimeString("tr-TR",{timeZone:"Europe/Istanbul"})
+};
 }
 
-/* ================= RAM LOAD ================= */
+/* ================= SHEET ================= */
 
-async function loadTodayData(){
+async function getNextId(date) {
+try {
+const res = await fetch(SHEET_URL,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({action:"GET_NEXT_ID",date})
+});
+const data = await res.json();
+return (!data.id || isNaN(data.id)) ? 1 : data.id;
+} catch {
+return 1;
+}
+}
 
-const {date}=getDateTime();
+async function sendToSheet(data) {
+try {
+await fetch(SHEET_URL,{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify(data)
+});
+} catch(e){
+console.log("Sheet error:",e);
+}
+}
 
-try{
+/* ================= LOAD RAM ================= */
 
-const response=await fetch(SHEET_URL,{
+async function loadTodayData() {
+const { date } = getDateTime();
+
+try {
+const res = await fetch(SHEET_URL,{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({action:"GET_TODAY",date})
 });
 
-const data=await response.json();
+const data = await res.json();
 
-dailyTransactions[date]=[];
-dailyData[date]={};
-
-if(!data || !data.length){
-console.log("Sheet boş ⚠️");
-return;
-}
+dailyTransactions[date] = [];
+dailyData[date] = {};
 
 data.forEach(t=>{
 dailyTransactions[date].push(t);
 
-if(!dailyData[date][t.provider]){
+if(!dailyData[date][t.provider])
 dailyData[date][t.provider]=0;
-}
 
 dailyData[date][t.provider]+=Number(t.amount);
 });
 
-console.log("RAM YÜKLENDİ ✅");
+console.log("✅ RAM'e yüklendi:", date);
 
-}catch(err){
-console.log("RAM load error:",err);
+} catch(e){
+console.log("LOAD ERROR:",e);
 }
+}
+
+/* 🔥 BOT AÇILIRKEN ÇALIŞIR */
+loadTodayData();
+
+/* ================= MENU ================= */
+
+async function showMenu(chatId) {
+return bot.sendMessage(chatId,"📌 Manuel Deposit Panel",{
+reply_markup:{
+inline_keyboard:[
+[{text:"➕ Ekle",callback_data:"ekle"},
+{text:"📊 Özet",callback_data:"ozet"}],
+[{text:"❌ Sil",callback_data:"sil"}]
+]
+}
+});
 }
 
 /* ================= START ================= */
 
-bot.onText(//start/, async (msg)=>{
-
+bot.onText(/\/start/, async (msg)=>{
 if(!allowedUsers.includes(msg.from.id)) return;
 
-const chatId=msg.chat.id;
+const panel = await showMenu(msg.chat.id);
 
-await loadTodayData(); // 🔥 KRİTİK
-
-const panelMsg=await bot.sendMessage(chatId,"📌 Manuel Deposit Panel",{
-reply_markup:{
-inline_keyboard:[
-[
-{text:"➕ Ekle",callback_data:"ekle"},
-{text:"📊 Özet",callback_data:"ozet"}
-],
-[
-{text:"❌ Sil",callback_data:"sil"}
-]
-]
-}
-});
-
-waitingForInput[chatId]={
-startMsgId:msg.message_id,
-panelMsgId:panelMsg.message_id,
-inputMsgId:null,
+waitingForInput[msg.chat.id]={
+panelMsgId:panel.message_id,
 active:false
 };
-
 });
 
 /* ================= CALLBACK ================= */
 
-bot.on("callback_query",async(query)=>{
+bot.on("callback_query", async (q)=>{
+const chatId=q.message.chat.id;
+const data=q.data;
 
-const chatId=query.message.chat.id;
-const data=query.data;
-
-if(!allowedUsers.includes(query.from.id)) return;
+if(!allowedUsers.includes(q.from.id)) return;
 
 if(data==="ekle"){
-
 waitingForInput[chatId].active=true;
-
-const inputMsg=await bot.sendMessage(chatId,"Kullanıcı ve tutar yaz:\nörnek: test1 1500");
-
-waitingForInput[chatId].inputMsgId=inputMsg.message_id;
+bot.sendMessage(chatId,"kullanıcı tutar yaz");
 }
 
 else if(data==="ozet"){
 
 const {date}=getDateTime();
-const groupName=normalizeText(query.message.chat.title||"");
+
+const groupName=normalizeText(q.message.chat.title||"");
 
 let provider=null;
-
 for(let key in providerMap){
 if(groupName.includes(key)){
-provider=providerMap[key];
-break;
+provider=providerMap[key]; break;
 }
 }
 
-if(!provider){
-bot.sendMessage(chatId,"Bu grup için saha eşleşmesi bulunamadı.");
-return;
-}
+if(!provider) return bot.sendMessage(chatId,"eşleşme yok");
 
-if(!dailyData[date] || !dailyData[date][provider]){
-bot.sendMessage(chatId,"Bugün bu saha için işlem yok.");
-return;
-}
+if(!dailyData[date]) await loadTodayData();
 
-let summary="📊 "+date+" - "+provider+" Özeti\n\n";
-summary+="Toplam: "+dailyData[date][provider]+" TRY\n\n";
-summary+="📝 İşlemler:\n";
+let total=dailyData[date][provider]||0;
 
-dailyTransactions[date]
+let txt=`📊 ${provider}\nToplam: ${total}\n\n`;
+
+(dailyTransactions[date]||[])
 .filter(t=>t.provider===provider)
 .forEach(t=>{
-summary+="#"+t.id+" | "+t.username+" - "+t.amount+" TRY\n";
+txt+=`#${t.id} ${t.username} ${t.amount}\n`;
 });
 
-bot.sendMessage(chatId,summary);
+bot.sendMessage(chatId,txt);
 }
 
 else if(data==="sil"){
 waitingForDelete[chatId]=true;
-bot.sendMessage(chatId,"Silmek için ID yaz:");
+bot.sendMessage(chatId,"ID gir");
 }
 
-bot.answerCallbackQuery(query.id);
-
+bot.answerCallbackQuery(q.id);
 });
 
 /* ================= RAPOR ================= */
 
-bot.onText(//rapor/, async (msg)=>{
+bot.onText(/\/rapor/, async (msg)=>{
 
 if(!allowedUsers.includes(msg.from.id)) return;
-if(msg.chat.id !== FINANS_GRUP_ID) return;
-
-await loadTodayData(); // 🔥 KRİTİK
+if(msg.chat.id!==FINANS_GRUP_ID) return;
 
 const {date}=getDateTime();
 
-let text="📊 Günlük Finans Özeti - "+date+"\n\n";
+if(!dailyData[date]) await loadTodayData();
+
 let total=0;
+let txt=`📊 ${date}\n\n`;
 
-Object.values(providerMap).forEach(provider=>{
-
-let amount=0;
-
-if(dailyData[date] && dailyData[date][provider]){
-amount=dailyData[date][provider];
-}
-
-total+=amount;
-text+=provider+": "+amount+" TRY\n";
+Object.values(providerMap).forEach(p=>{
+let val=dailyData[date]?.[p]||0;
+total+=val;
+txt+=`${p}: ${val}\n`;
 });
 
-text+="\n💰 Genel Toplam: "+total+" TRY";
+txt+=`\nTOPLAM: ${total}`;
 
-bot.sendMessage(msg.chat.id,text);
-
+bot.sendMessage(msg.chat.id,txt);
 });
 
 /* ================= MESSAGE ================= */
 
-bot.on("message",async(msg)=>{
+bot.on("message", async (msg)=>{
 
 if(!msg.text) return;
 if(!allowedUsers.includes(msg.from.id)) return;
 
 const chatId=msg.chat.id;
-const text=msg.text;
 
+/* DELETE */
 if(waitingForDelete[chatId]){
-
-const id=parseInt(text);
+const id=parseInt(msg.text);
 if(isNaN(id)) return;
 
 const {date}=getDateTime();
 
-await fetch(SHEET_URL,{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({action:"DELETE",id,date})
-});
+await sendToSheet({action:"DELETE",id,date});
 
-bot.sendMessage(chatId,"#"+id+" silindi ❌");
+dailyTransactions[date]=
+(dailyTransactions[date]||[]).filter(t=>t.id!==id);
+
+bot.sendMessage(chatId,"silindi");
 
 waitingForDelete[chatId]=false;
 return;
 }
 
+/* ADD */
 if(waitingForInput[chatId]?.active){
 
-const parts=text.trim().split(" ");
-
+const parts=msg.text.split(" ");
 if(parts.length!==2 || isNaN(parts[1])){
-bot.sendMessage(chatId,"Hatalı işlem tekrar dene");
-return;
+return bot.sendMessage(chatId,"hatalı");
 }
 
 const username=parts[0];
@@ -270,30 +254,58 @@ const amount=parseFloat(parts[1]);
 const groupName=normalizeText(msg.chat.title||"");
 
 let provider=null;
-
 for(let key in providerMap){
 if(groupName.includes(key)){
-provider=providerMap[key];
-break;
+provider=providerMap[key]; break;
 }
 }
+
+if(!provider) return bot.sendMessage(chatId,"eşleşme yok");
 
 const {date,time}=getDateTime();
+const id=await getNextId(date);
 
-const id=Date.now(); // 🔥 basit id
-
-await fetch(SHEET_URL,{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({id,date,time,username,amount,provider,type:"EKLE"})
-});
-
-bot.sendMessage(chatId,
-"#"+id+" | "+username+" "+amount+" TRY "+provider+" manuel eklendi ✅"
-);
-
-waitingForInput[chatId]=null;
-return;
+if(!dailyData[date]){
+dailyData[date]={};
+dailyTransactions[date]=[];
 }
 
+dailyData[date][provider]=(dailyData[date][provider]||0)+amount;
+
+dailyTransactions[date].push({
+id,username,amount,provider
 });
+
+await sendToSheet({
+id,date,time,username,amount,provider,type:"EKLE"
+});
+
+bot.sendMessage(chatId,`#${id} eklendi`);
+
+waitingForInput[chatId]=null;
+}
+});
+
+/* ================= GÜN SONU ================= */
+
+function sendDailyFinanceReport(){
+const {date}=getDateTime();
+
+let total=0;
+let txt=`📊 GÜN SONU ${date}\n\n`;
+
+Object.values(providerMap).forEach(p=>{
+let val=dailyData[date]?.[p]||0;
+total+=val;
+txt+=`${p}: ${val}\n`;
+});
+
+txt+=`\nTOPLAM: ${total}`;
+
+bot.sendMessage(FINANS_GRUP_ID,txt);
+}
+
+setInterval(()=>{
+const now=new Date().toLocaleTimeString("tr-TR",{timeZone:"Europe/Istanbul",hour:"2-digit",minute:"2-digit"});
+if(now==="23:50") sendDailyFinanceReport();
+},60000);
