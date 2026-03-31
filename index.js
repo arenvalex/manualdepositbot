@@ -242,18 +242,17 @@ bot.onText(/\/rapor/, async (msg) => {
   bot.sendMessage(msg.chat.id, txt);
 });
 
-bot.on("message", async (msg) => {
+/* ================= MESSAGE ================= */
 
+bot.on("message", async (msg) => {
   if (!msg.text) return;
   if (!allowedUsers.includes(msg.from.id)) return;
 
   const chatId = msg.chat.id;
-  const text = msg.text;
 
-  /* ================= DELETE ================= */
+  /* DELETE */
   if (waitingForDelete[chatId]) {
-
-    const id = parseInt(text);
+    const id = parseInt(msg.text);
     if (isNaN(id)) return;
 
     const { date } = getDateTime();
@@ -269,48 +268,9 @@ bot.on("message", async (msg) => {
     return;
   }
 
-  /* ================= OZET ================= */
-  if (text.startsWith("/ozet")) {
-
-    const { date } = getDateTime();
-
-    if (!dailyData[date]) await loadTodayData();
-
-    const groupName = normalizeText(msg.chat.title || "");
-
-    let provider = null;
-
-    for (let key in providerMap) {
-      if (groupName.includes(key)) {
-        provider = providerMap[key];
-        break;
-      }
-    }
-
-    if (!provider) {
-      return bot.sendMessage(chatId, "eşleşme yok");
-    }
-
-    const total = dailyData[date][provider] || 0;
-
-    let txt = `📊 ${date} - ${provider} Özeti\n\n`;
-    txt += `Toplam: ${total} TRY\n\n`;
-    txt += `📝 İşlemler:\n`;
-
-    (dailyTransactions[date] || [])
-      .filter(t => t.provider === provider)
-      .forEach(t => {
-        txt += `#${t.id} | ${t.username} - ${t.amount} TRY\n`;
-      });
-
-    bot.sendMessage(chatId, txt);
-    return;
-  }
-
-  /* ================= ADD ================= */
+  /* ADD */
   if (waitingForInput[chatId]?.active) {
-
-    const parts = text.split(" ");
+    const parts = msg.text.split(" ");
 
     if (parts.length !== 2 || isNaN(parts[1])) {
       return bot.sendMessage(chatId, "hatalı");
@@ -330,9 +290,7 @@ bot.on("message", async (msg) => {
       }
     }
 
-    if (!provider) {
-      return bot.sendMessage(chatId, "eşleşme yok");
-    }
+    if (!provider) return bot.sendMessage(chatId, "eşleşme yok");
 
     const { date, time } = getDateTime();
     const id = await getNextId(date);
@@ -365,9 +323,7 @@ bot.on("message", async (msg) => {
     bot.sendMessage(chatId, `#${id} eklendi`);
 
     waitingForInput[chatId] = null;
-    return;
   }
-
 });
 
 /* ================= GÜN SONU ================= */
