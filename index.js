@@ -173,20 +173,20 @@ inline_keyboard: [
 
 /* ================= START ================= */
 
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, async (msg) => {
 
-if (!allowedUsers.includes(msg.from.id)) return;
+    if (!allowedUsers.includes(msg.from.id)) return;
 
-const chatId = msg.chat.id;
+    const chatId = msg.chat.id;
 
-const panelMsg = await showMenu(chatId);
+    const panelMsg = await showMenu(chatId);
 
-waitingForInput[chatId] = {
-    startMsgId: msg.message_id,
-    panelMsgId: panelMsg.message_id,
-    inputMsgId: null,
-    active: false
-};
+    waitingForInput[chatId] = {
+        startMsgId: msg.message_id,
+        panelMsgId: panelMsg.message_id,
+        inputMsgId: null,
+        active: false
+    };
 
 });
 
