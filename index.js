@@ -6,6 +6,10 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbzcpUafU7zAewaz1_PitM
 
 const bot = new TelegramBot(token);
 
+bot.on('message', (msg) => {
+  console.log("CHAT ID:", msg.chat.id);
+});
+
 bot.deleteWebHook().then(() => {
   console.log("✅ Bot başlatıldı");
   bot.startPolling();
