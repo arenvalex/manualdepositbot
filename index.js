@@ -22,7 +22,7 @@ let waitingForDelete = {};
 let dailyData = {};
 let dailyTransactions = {};
 
-const FINANS_GRUP_ID = -5035282347;
+const FINANS_GRUP_ID = --1003717216804;
 
 const allowedUsers = [
   8467771210,
@@ -538,7 +538,7 @@ setInterval(() => {
     minute: "2-digit"
   });
 
-  if (now === "23:50") {
+  if (now === "00:22") {
     sendDailyFinanceReport();
   }
 }, 60000);
