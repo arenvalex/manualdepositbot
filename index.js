@@ -534,7 +534,7 @@ setInterval(() => {
     minute: "2-digit"
   });
 
-  if (now === "00:22") {
+  if (now === "23:55") {
     sendDailyFinanceReport();
   }
 }, 60000);
