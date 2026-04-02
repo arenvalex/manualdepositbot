@@ -538,7 +538,7 @@ setInterval(() => {
 
   const today = new Date().toDateString();
 
-  if (now === "01:33" && lastRunDate !== today) {
+  if (now === "01:38" && lastRunDate !== today) {
     lastRunDate = today;
     sendDailyFinanceReport();
   }
