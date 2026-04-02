@@ -333,6 +333,11 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
+/* ===== RAPOR FIX ===== */
+if (text.startsWith("/rapor")) {
+
+  console.log("RAPOR ÇALIŞTI");
+
 // if (msg.chat.id !== FINANS_GRUP_ID) return;
   
   const { date } = getDateTime();
@@ -504,6 +509,8 @@ waitingForInput[chatId] = null;
 
 /* ================= GÜN SONU ================= */
 
+let lastRunDate = null;
+
 function sendDailyFinanceReport() {
   const { date } = getDateTime();
 
@@ -529,7 +536,10 @@ setInterval(() => {
     minute: "2-digit"
   });
 
-  if (now === "01:52") {
+  const today = new Date().toDateString();
+
+  if (now === "01:33" && lastRunDate !== today) {
+    lastRunDate = today;
     sendDailyFinanceReport();
   }
 }, 60000);
