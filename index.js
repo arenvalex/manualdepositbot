@@ -543,3 +543,4 @@ setInterval(() => {
     sendDailyFinanceReport();
   }
 }, 60000);
+});
