@@ -286,86 +286,33 @@ bot.on("callback_query", async (query) => {
 
 /* ================= RAPOR ================= */
 
-bot.onText(/\/rapor/, async (msg) => {
-
-    if (!allowedUsers.includes(msg.from.id)) return;
-
-    if (msg.chat.id !== FINANS_GRUP_ID) return;
-
-    const { date } = getDateTime();
-
-    /* 🔥 RAM YOKSA ÇEK */
-    if (!dailyData[date]) {
-        console.log("RAM boş → yükleniyor");
-        await loadTodayData();
-    }
-
-    let text = "📊 Günlük Finans Özeti - " + date + "\n\n";
-
-    let total = 0;
-
-    Object.values(providerMap).forEach(provider => {
-
-        let amount = 0;
-
-        if (dailyData[date] && dailyData[date][provider]) {
-            amount = dailyData[date][provider];
-        }
-
-        total += amount;
-
-        text += provider + ": " + amount + " TRY\n";
-
-    });
-
-    text += "\n💰 Genel Toplam: " + total + " TRY";
-
-    bot.sendMessage(msg.chat.id, text);
-
-});
-
-/* ================= MESSAGE ================= */
-
-bot.on("message", async (msg) => {
-  if (!msg.text) return;
-  if (!allowedUsers.includes(msg.from.id)) return;
-
-  const chatId = msg.chat.id;
-  const text = msg.text;
-
-/* ===== RAPOR FIX ===== */
-if (text.startsWith("/rapor")) {
-
+bot.onText(/\/rapor(@\w+)?/, async (msg) => {
   console.log("RAPOR ÇALIŞTI");
 
-// if (msg.chat.id !== FINANS_GRUP_ID) return;
-  
+  const chatId = msg.chat.id;
   const { date } = getDateTime();
 
+  // 🔥 RAM boşsa veriyi çek
   if (!dailyData[date]) {
     console.log("RAM boş → yükleniyor");
     await loadTodayData();
   }
 
   let total = 0;
-  let rapor = `📊 Günlük Finans Özeti - ${date}\n\n`;
+  let text = `📊 Günlük Finans Özeti - ${date}\n\n`;
 
   Object.values(providerMap).forEach(p => {
-
     const val = dailyData[date]?.[p] || 0;
 
     total += val;
-
-    rapor += `${p}: ${val} TRY\n`;
+    text += `${p}: ${val} TRY\n`;
   });
 
-  rapor += `\n💰 Genel Toplam: ${total} TRY`;
+  text += `\n💰 Genel Toplam: ${total} TRY`;
 
-  bot.sendMessage(chatId, rapor);
+  await bot.sendMessage(chatId, text);
+});
 
-  return;
-}
-  
   /* ===== DELETE ===== */
   if (waitingForDelete[chatId]) {
 
@@ -538,7 +485,7 @@ setInterval(() => {
 
   const today = new Date().toDateString();
 
-  if (now === "01:57" && lastRunDate !== today) {
+  if (now === "02:05" && lastRunDate !== today) {
     lastRunDate = today;
     sendDailyFinanceReport();
   }
