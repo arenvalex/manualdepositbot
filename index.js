@@ -313,72 +313,80 @@ bot.onText(/\/rapor(@\w+)?/, async (msg) => {
   await bot.sendMessage(chatId, text);
 });
 
+/* ===== MESSAGE (DELETE + ADD) ===== */
+
+bot.on("message", async (msg) => {
+  if (!msg.text) return;
+  if (!allowedUsers.includes(msg.from.id)) return;
+
+  const chatId = msg.chat.id;
+  const text = msg.text;
+
   /* ===== DELETE ===== */
   if (waitingForDelete[chatId]) {
 
-  const id = parseInt(text);
-  if (isNaN(id)) return;
+    const id = parseInt(text);
+    if (isNaN(id)) return;
 
-  const { date } = getDateTime();
+    const { date } = getDateTime();
 
-  await sendToSheet({
-    action: "DELETE",
-    id: id,
-    date: date
-  });
+    await sendToSheet({
+      action: "DELETE",
+      id: id,
+      date: date
+    });
 
-  /* 🔥 RAM GÜNCELLEME */
-  if (dailyTransactions[date]) {
+    /* 🔥 RAM GÜNCELLEME */
+    if (dailyTransactions[date]) {
 
-    const deleted = dailyTransactions[date].find(t => t.id === id);
+      const deleted = dailyTransactions[date].find(t => t.id === id);
 
-    if (deleted) {
+      if (deleted) {
 
-      // toplamdan düş
-      if (dailyData[date] && dailyData[date][deleted.provider]) {
-        dailyData[date][deleted.provider] -= Number(deleted.amount);
+        if (dailyData[date] && dailyData[date][deleted.provider]) {
+          dailyData[date][deleted.provider] -= Number(deleted.amount);
+        }
+
+        dailyTransactions[date] =
+          dailyTransactions[date].filter(t => t.id !== id);
+
+        console.log("RAM'den silindi:", id);
       }
-
-      // listeden sil
-      dailyTransactions[date] =
-        dailyTransactions[date].filter(t => t.id !== id);
-
-      console.log("RAM'den silindi:", id);
     }
-  }
 
-  bot.sendMessage(chatId, "#" + id + " silindi ❌");
+    await bot.sendMessage(chatId, "#" + id + " silindi ❌");
 
-  waitingForDelete[chatId] = false;
-  return;
-}
-
-  /* ===== ADD ===== */
-  if (waitingForInput[chatId]?.active) {
-    const parts = text.trim().split(" ");
-
-   if (parts.length !== 2 || isNaN(parts[1])) {
-
-  if (!waitingForInput[chatId]) return;
-
-  waitingForInput[chatId].errorCount++;
-
-  if (waitingForInput[chatId].errorCount >= 2) {
-
-    bot.sendMessage(chatId,
-      "❌ 2 kez hatalı giriş yaptın\n/start ile tekrar başlat"
-    );
-
-    waitingForInput[chatId] = null;
+    waitingForDelete[chatId] = false;
     return;
   }
 
-  bot.sendMessage(chatId,
-    "⚠️ Hatalı format\nörnek: test1 1500"
-  );
+  /* ===== ADD ===== */
+  if (waitingForInput[chatId]?.active) {
 
-  return;
-}
+    const parts = text.trim().split(" ");
+
+    if (parts.length !== 2 || isNaN(parts[1])) {
+
+      if (!waitingForInput[chatId]) return;
+
+      waitingForInput[chatId].errorCount++;
+
+      if (waitingForInput[chatId].errorCount >= 2) {
+
+        await bot.sendMessage(chatId,
+          "❌ 2 kez hatalı giriş yaptın\n/start ile tekrar başlat"
+        );
+
+        waitingForInput[chatId] = null;
+        return;
+      }
+
+      await bot.sendMessage(chatId,
+        "⚠️ Hatalı format\nörnek: test1 1500"
+      );
+
+      return;
+    }
 
     const username = parts[0];
     const amount = parseFloat(parts[1]);
@@ -426,33 +434,34 @@ bot.onText(/\/rapor(@\w+)?/, async (msg) => {
       type: "EKLE"
     });
 
-    bot.sendMessage(
-  chatId,
-  "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅"
-);
+    await bot.sendMessage(
+      chatId,
+      "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅"
+    );
 
-const ids = waitingForInput[chatId];
+    const ids = waitingForInput[chatId];
 
-setTimeout(() => {
+    setTimeout(() => {
 
-  if (ids?.startMsgId)
-    bot.deleteMessage(chatId, ids.startMsgId).catch(()=>{});
+      if (ids?.startMsgId)
+        bot.deleteMessage(chatId, ids.startMsgId).catch(()=>{});
 
-  if (ids?.panelMsgId)
-    bot.deleteMessage(chatId, ids.panelMsgId).catch(()=>{});
+      if (ids?.panelMsgId)
+        bot.deleteMessage(chatId, ids.panelMsgId).catch(()=>{});
 
-  if (ids?.inputMsgId)
-    bot.deleteMessage(chatId, ids.inputMsgId).catch(()=>{});
+      if (ids?.inputMsgId)
+        bot.deleteMessage(chatId, ids.inputMsgId).catch(()=>{});
 
-  if (ids?.userMsgId)
-    bot.deleteMessage(chatId, ids.userMsgId).catch(()=>{});
+      if (ids?.userMsgId)
+        bot.deleteMessage(chatId, ids.userMsgId).catch(()=>{});
 
-}, 4500);
+    }, 4500);
 
-// 🔥 EN SON
-waitingForInput[chatId] = null;
+    waitingForInput[chatId] = null;
     return;
-}
+  }
+
+});
 
 /* ================= GÜN SONU ================= */
 
