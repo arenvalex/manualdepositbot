@@ -460,7 +460,6 @@ bot.on("message", async (msg) => {
     waitingForInput[chatId] = null;
     return;
   }
-
 });
 
 /* ================= GÜN SONU ================= */
@@ -499,4 +498,3 @@ setInterval(() => {
     sendDailyFinanceReport();
   }
 }, 60000);
-});
