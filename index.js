@@ -509,8 +509,6 @@ waitingForInput[chatId] = null;
 
 /* ================= GÜN SONU ================= */
 
-let lastRunDate = null;
-
 function sendDailyFinanceReport() {
   const { date } = getDateTime();
 
@@ -532,15 +530,14 @@ function sendDailyFinanceReport() {
 setInterval(() => {
   const now = new Date().toLocaleTimeString("tr-TR", {
     timeZone: "Europe/Istanbul",
+    hour12: false, // 🔥 önemli
     hour: "2-digit",
-    minute: "2-digit"
+    minute: "2-digit",
+    second: "2-digit" // 🔥 saniye eklendi
   });
 
-  const today = new Date().toDateString();
-
-  if (now === "01:38" && lastRunDate !== today) {
-    lastRunDate = today;
+  if (now === "01:44:00") { // 🔥 saniyeli kontrol
     sendDailyFinanceReport();
   }
-}, 60000);
+}, 1000);
 });
