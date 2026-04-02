@@ -509,6 +509,8 @@ waitingForInput[chatId] = null;
 
 /* ================= GÜN SONU ================= */
 
+let lastRunDate = null;
+
 function sendDailyFinanceReport() {
   const { date } = getDateTime();
 
@@ -534,8 +536,10 @@ setInterval(() => {
     minute: "2-digit"
   });
 
-  if (now === "23:55") {
+  const today = new Date().toDateString();
+
+  if (now === "01:33" && lastRunDate !== today) {
+    lastRunDate = today;
     sendDailyFinanceReport();
   }
 }, 60000);
-  });
