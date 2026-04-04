@@ -56,6 +56,7 @@ const providerMap = {
   kartal: "Kartal",
   ezel: "Ezel",
   bizans: "Bizans",
+  fastpay: "Fastpay",
   garanti: "Garanti QR",
   cryptobox: "Cryptobox",
   easy: "Easy",
