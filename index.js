@@ -123,6 +123,18 @@ async function getNextId(date) {
   }
 }
 
+async function sendToSheet(data) {
+  try {
+    await fetch(SHEET_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+  } catch (err) {
+    console.log("❌ Sheet error:", err.message);
+  }
+}
+
 async function loadTodayData() {
   console.log("🚀 loadTodayData çalıştı");
 
