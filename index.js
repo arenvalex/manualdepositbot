@@ -6,8 +6,11 @@ const SHEET_URL = "https://script.google.com/macros/s/AKfycbzcpUafU7zAewaz1_PitM
 
 const bot = new TelegramBot(token);
 
-bot.deleteWebHook().then(() => {
+bot.deleteWebHook().then(async () => {
   console.log("✅ Bot başlatıldı");
+
+  await loadTodayData(); // 🔥 RAM BURADA YÜKLENİR
+
   bot.startPolling();
 });
 
@@ -99,34 +102,9 @@ function getDateTime() {
 
 /* ================= SHEET ================= */
 
-async function getNextId(date) {
-  try {
-    const res = await fetch(SHEET_URL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({action:"GET_NEXT_ID",date})
-    });
-
-    const data = await res.json();
-    return data.id || 1;
-  } catch {
-    return 1;
-  }
-}
-
-async function sendToSheet(data) {
-  try {
-    await fetch(SHEET_URL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(data)
-    });
-  } catch {}
-}
-
-/* ================= RAM LOAD ================= */
-
 async function loadTodayData() {
+  console.log("🚀 loadTodayData çalıştı");
+
   const { date } = getDateTime();
 
   try {
@@ -141,7 +119,16 @@ async function loadTodayData() {
       })
     });
 
-    const data = await response.json();
+    const text = await response.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      console.log("❌ JSON parse hatası:", text.substring(0, 80));
+      return;
+    }
 
     dailyTransactions[date] = [];
     dailyData[date] = {};
@@ -156,7 +143,6 @@ async function loadTodayData() {
       dailyData[date][t.provider] += Number(t.amount);
     });
 
-    // ✅ LOG
     console.log(`✅ RAM yüklendi | Kayıt: ${data.length}`);
     console.log("📊 Provider dağılımı:", dailyData[date]);
 
@@ -359,13 +345,20 @@ bot.on("message", async (msg) => {
     });
 
     bot.sendMessage(
-      chatId,
-      `#${id} | ${username} ${amount} TRY ${providers.short} manuel eklendi ✅`
-    );
+  chatId,
+  `#${id} | ${username} ${amount} TRY ${providers.short} manuel eklendi ✅`
+);
 
-    waitingForInput[chatId] = null;
-  }
-});
+// 🔥 SADECE INPUT MESAJINI SİL
+const ids = waitingForInput[chatId];
+
+setTimeout(() => {
+  if (ids?.inputMsgId)
+    bot.deleteMessage(chatId, ids.inputMsgId).catch(()=>{});
+}, 4000);
+
+// 🔥 STATE TEMİZLE
+delete waitingForInput[chatId];
 
 /* ================= GÜN SONU ================= */
 
