@@ -355,7 +355,7 @@ const ids = waitingForInput[chatId];
 setTimeout(() => {
   if (ids?.inputMsgId)
     bot.deleteMessage(chatId, ids.inputMsgId).catch(()=>{});
-}, 4000});
+}, 4000};
 
 // 🔥 STATE TEMİZLE
 delete waitingForInput[chatId];
