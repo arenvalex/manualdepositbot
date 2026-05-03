@@ -130,6 +130,8 @@ async function loadTodayData() {
   const { date } = getDateTime();
 
   try {
+    console.log("📥 RAM yükleme başladı...");
+
     const response = await fetch(SHEET_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -154,14 +156,12 @@ async function loadTodayData() {
       dailyData[date][t.provider] += Number(t.amount);
     });
 
-    // ✅
-    await bot.sendMessage(
-      FINANS_GRUP_ID,
-      `🚀 Bot aktif\n📊 RAM verileri yüklendi\n🧾 ${data.length} kayıt hazır`
-    );
+    // ✅ LOG
+    console.log(`✅ RAM yüklendi | Kayıt: ${data.length}`);
+    console.log("📊 Provider dağılımı:", dailyData[date]);
 
   } catch (err) {
-    console.log("RAM load hatası:", err);
+    console.log("❌ RAM load hatası:", err.message);
   }
 }
 
