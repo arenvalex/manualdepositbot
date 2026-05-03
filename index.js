@@ -102,6 +102,27 @@ function getDateTime() {
 
 /* ================= SHEET ================= */
 
+// 🔥 BURAYA EKLE
+async function getNextId(date) {
+  try {
+    const res = await fetch(SHEET_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "GET_NEXT_ID",
+        date
+      })
+    });
+
+    const data = await res.json();
+    return data.id || 1;
+
+  } catch (err) {
+    console.log("❌ ID error:", err.message);
+    return 1;
+  }
+}
+
 async function loadTodayData() {
   console.log("🚀 loadTodayData çalıştı");
 
