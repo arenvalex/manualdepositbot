@@ -165,6 +165,22 @@ async function loadTodayData() {
   }
 }
 
+/* ================= MENU ================= */
+
+async function showMenu(chatId) {
+  return bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
+    reply_markup: {
+      inline_keyboard: [
+        [
+          { text: "➕ Ekle", callback_data: "ekle" },
+          { text: "📊 Özet", callback_data: "ozet" }
+        ],
+        [{ text: "❌ Sil", callback_data: "sil" }]
+      ]
+    }
+  });
+}
+
 /* ================= START ================= */
 
 bot.onText(/\/start/, async (msg) => {
