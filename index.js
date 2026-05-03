@@ -130,56 +130,39 @@ async function loadTodayData() {
   const { date } = getDateTime();
 
   try {
-    const res = await fetch(SHEET_URL,{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({action:"GET_TODAY",date})
+    const response = await fetch(SHEET_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "GET_TODAY",
+        date: date
+      })
     });
 
-    const data = await res.json();
+    const data = await response.json();
 
     dailyTransactions[date] = [];
     dailyData[date] = {};
 
     data.forEach((t) => {
+      dailyTransactions[date].push(t);
 
-      // 🔥 eski data normalize
-      const key = reverseExcelMap[t.provider];
-      const normalized = key
-        ? (providerExcelMap[key] || t.provider)
-        : t.provider;
-
-      dailyTransactions[date].push({
-        ...t,
-        provider: normalized
-      });
-
-      if (!dailyData[date][normalized]) {
-        dailyData[date][normalized] = 0;
+      if (!dailyData[date][t.provider]) {
+        dailyData[date][t.provider] = 0;
       }
 
-      dailyData[date][normalized] += Number(t.amount);
+      dailyData[date][t.provider] += Number(t.amount);
     });
 
-  } catch {}
-}
+    // ✅
+    await bot.sendMessage(
+      FINANS_GRUP_ID,
+      `🚀 Bot aktif\n📊 RAM verileri yüklendi\n🧾 ${data.length} kayıt hazır`
+    );
 
-setTimeout(loadTodayData, 2000);
-
-/* ================= MENU ================= */
-
-async function showMenu(chatId) {
-  return bot.sendMessage(chatId, "📌 Manuel Deposit Panel", {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: "➕ Ekle", callback_data: "ekle" },
-          { text: "📊 Özet", callback_data: "ozet" }
-        ],
-        [{ text: "❌ Sil", callback_data: "sil" }]
-      ]
-    }
-  });
+  } catch (err) {
+    console.log("RAM load hatası:", err);
+  }
 }
 
 /* ================= START ================= */
