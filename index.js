@@ -21,32 +21,12 @@ let dailyTransactions = {};
 const FINANS_GRUP_ID = -1003717216804;
 
 const allowedUsers = [
-  8467771210,
-  5340962409,
-  6855450336,
-  1382439300,
-  8217946285,
-  8153108008,
-  649401002,
-  8139153707,
-  1409197362,
-  1617214857,
-  5236903171,
-  8473156805
+  8467771210,5340962409,6855450336,1382439300,8217946285,
+  8153108008,649401002,8139153707,1409197362,1617214857,
+  5236903171,8473156805
 ];
 
-/* ================= UTILS ================= */
-
-function normalizeText(text) {
-  return text
-    .toLowerCase()
-    .replace(/ı/g, "i")
-    .replace(/ğ/g, "g")
-    .replace(/ü/g, "u")
-    .replace(/ş/g, "s")
-    .replace(/ö/g, "o")
-    .replace(/ç/g, "c");
-}
+/* ================= MAP ================= */
 
 const providerMap = {
   sahin: "Şahin",
@@ -67,66 +47,81 @@ const providerMap = {
   manuel: "Manuel Test"
 };
 
+const providerExcelMap = {
+  fastpay: "Fast Pay",
+  easy: "Easy Pay 2",
+  evapay: "EvaPay Banka",
+  jorpay: "JorPay Banka Havalesi",
+  kartal: "Kartal Banka Havalesi",
+  dream: "Dream Banka Havalesi",
+  sahin: "Şahin",
+  ezel: "Ezel Havale",
+  atlas: "Atlas Banka Havalesi",
+  garanti: "Güvenli Qr"
+};
+
+/* 🔥 REVERSE MAP (eski data fix) */
+const reverseExcelMap = Object.fromEntries(
+  Object.entries(providerExcelMap).map(([k,v]) => [v,k])
+);
+
+/* ================= UTILS ================= */
+
+function normalizeText(text) {
+  return text
+    .toLowerCase()
+    .replace(/ı/g,"i").replace(/ğ/g,"g")
+    .replace(/ü/g,"u").replace(/ş/g,"s")
+    .replace(/ö/g,"o").replace(/ç/g,"c");
+}
+
+function getProviders(groupName){
+  for (let key in providerMap) {
+    if (groupName.includes(key)) {
+      return {
+        short: providerMap[key],
+        excel: providerExcelMap[key] || providerMap[key],
+        key
+      };
+    }
+  }
+  return null;
+}
+
 function getDateTime() {
   const now = new Date();
 
-  const date = now.toLocaleDateString("tr-TR", {
-    timeZone: "Europe/Istanbul",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  });
-
-  const time = now.toLocaleTimeString("tr-TR", {
-    timeZone: "Europe/Istanbul",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit"
-  });
-
-  return { date, time };
+  return {
+    date: now.toLocaleDateString("tr-TR", { timeZone: "Europe/Istanbul" }),
+    time: now.toLocaleTimeString("tr-TR", { timeZone: "Europe/Istanbul" })
+  };
 }
 
 /* ================= SHEET ================= */
 
 async function getNextId(date) {
   try {
-    console.log("📥 ID çekiliyor...");
-
-    const response = await fetch(SHEET_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "GET_NEXT_ID",
-        date: date
-      })
+    const res = await fetch(SHEET_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action:"GET_NEXT_ID",date})
     });
 
-    const data = await response.json();
-
-    console.log("✅ ID:", data);
-
-    if (!data.id || isNaN(data.id)) return 1;
-
-    return data.id;
-  } catch (err) {
-    console.log("❌ ID error:", err);
+    const data = await res.json();
+    return data.id || 1;
+  } catch {
     return 1;
   }
 }
 
 async function sendToSheet(data) {
   try {
-    console.log("📤 Sheet gönder:", data);
-
-    await fetch(SHEET_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+    await fetch(SHEET_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(data)
     });
-  } catch (err) {
-    console.log("❌ Sheet error:", err);
-  }
+  } catch {}
 }
 
 /* ================= RAM LOAD ================= */
@@ -135,42 +130,41 @@ async function loadTodayData() {
   const { date } = getDateTime();
 
   try {
-    console.log("📥 RAM yükleniyor...");
-
-    const response = await fetch(SHEET_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "GET_TODAY",
-        date: date
-      })
+    const res = await fetch(SHEET_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action:"GET_TODAY",date})
     });
 
-    const data = await response.json();
+    const data = await res.json();
 
     dailyTransactions[date] = [];
     dailyData[date] = {};
 
     data.forEach((t) => {
-      dailyTransactions[date].push(t);
 
-      if (!dailyData[date][t.provider]) {
-        dailyData[date][t.provider] = 0;
+      // 🔥 eski data normalize
+      const key = reverseExcelMap[t.provider];
+      const normalized = key
+        ? (providerExcelMap[key] || t.provider)
+        : t.provider;
+
+      dailyTransactions[date].push({
+        ...t,
+        provider: normalized
+      });
+
+      if (!dailyData[date][normalized]) {
+        dailyData[date][normalized] = 0;
       }
 
-      dailyData[date][t.provider] += Number(t.amount);
+      dailyData[date][normalized] += Number(t.amount);
     });
 
-    console.log("✅ RAM yüklendi:", data.length);
-  } catch (err) {
-    console.log("❌ RAM error:", err);
-  }
+  } catch {}
 }
 
-/* 🔥 STARTUP */
-setTimeout(() => {
-  loadTodayData();
-}, 2000);
+setTimeout(loadTodayData, 2000);
 
 /* ================= MENU ================= */
 
@@ -195,11 +189,8 @@ bot.onText(/\/start/, async (msg) => {
 
   const chatId = msg.chat.id;
 
-  // 🔥 KLAVYEYİ KALDIR
   await bot.sendMessage(chatId, ".", {
-  reply_markup: {
-    remove_keyboard: true
-    }
+    reply_markup: { remove_keyboard: true }
   });
 
   const panelMsg = await showMenu(chatId);
@@ -220,64 +211,43 @@ bot.on("callback_query", async (query) => {
 
   if (!allowedUsers.includes(query.from.id)) return;
 
-  /* ===== EKLE ===== */
   if (data === "ekle") {
+    waitingForInput[chatId] = { active:true, inputMsgId:null, errorCount:0 };
 
-  waitingForInput[chatId] = {
-  active: true,
-  inputMsgId: null,
-  errorCount: 0
-};
+    const msg = await bot.sendMessage(chatId,
+      "Kullanıcı ve tutar yaz:\nörnek: test1 1500"
+    );
 
-  const inputMsg = await bot.sendMessage(
-    chatId,
-    "Kullanıcı ve tutar yaz:\nörnek: test1 1500"
-  );
+    waitingForInput[chatId].inputMsgId = msg.message_id;
+  }
 
-  waitingForInput[chatId].inputMsgId = inputMsg.message_id;
-}
-
-  /* ===== OZET ===== */
   else if (data === "ozet") {
     const { date } = getDateTime();
-
-    if (!dailyData[date]) {
-      await loadTodayData();
-    }
+    if (!dailyData[date]) await loadTodayData();
 
     const groupName = normalizeText(query.message.chat.title || "");
+    const providers = getProviders(groupName);
 
-    let provider = null;
+    if (!providers) return bot.sendMessage(chatId,"eşleşme yok");
 
-    for (let key in providerMap) {
-      if (groupName.includes(key)) {
-        provider = providerMap[key];
-        break;
-      }
-    }
-
-    if (!provider) {
-      return bot.sendMessage(chatId, "eşleşme yok");
-    }
+    const provider = providers.excel;
 
     if (!dailyData[date][provider]) {
-      return bot.sendMessage(chatId, "bu grup için veri yok");
+      return bot.sendMessage(chatId,"bu grup için veri yok");
     }
 
     let summary = `📊 ${date} - ${provider} Özeti\n\n`;
     summary += `Toplam: ${dailyData[date][provider]} TRY\n\n`;
-    summary += `📝 İşlemler:\n`;
 
     dailyTransactions[date]
-      .filter((t) => t.provider === provider)
-      .forEach((t) => {
+      .filter(t => t.provider === provider)
+      .forEach(t => {
         summary += `#${t.id} | ${t.username} - ${t.amount} TRY\n`;
       });
 
     bot.sendMessage(chatId, summary);
   }
 
-  /* ===== SIL ===== */
   else if (data === "sil") {
     waitingForDelete[chatId] = true;
     bot.sendMessage(chatId, "ID gir:");
@@ -289,33 +259,28 @@ bot.on("callback_query", async (query) => {
 /* ================= RAPOR ================= */
 
 bot.onText(/\/rapor(@\w+)?/, async (msg) => {
-  console.log("RAPOR ÇALIŞTI");
-
   const chatId = msg.chat.id;
   const { date } = getDateTime();
 
-  // 🔥 RAM boşsa veriyi çek
-  if (!dailyData[date]) {
-    console.log("RAM boş → yükleniyor");
-    await loadTodayData();
-  }
+  if (!dailyData[date]) await loadTodayData();
 
   let total = 0;
   let text = `📊 Günlük Finans Özeti - ${date}\n\n`;
 
-  Object.values(providerMap).forEach(p => {
-    const val = dailyData[date]?.[p] || 0;
+  Object.keys(providerMap).forEach(key => {
+    const name = providerExcelMap[key] || providerMap[key];
+    const val = dailyData[date]?.[name] || 0;
 
     total += val;
-    text += `${p}: ${val} TRY\n`;
+    text += `${name}: ${val} TRY\n`;
   });
 
   text += `\n💰 Genel Toplam: ${total} TRY`;
 
-  await bot.sendMessage(chatId, text);
+  bot.sendMessage(chatId, text);
 });
 
-/* ===== MESSAGE (DELETE + ADD) ===== */
+/* ================= ADD / DELETE ================= */
 
 bot.on("message", async (msg) => {
   if (!msg.text) return;
@@ -324,89 +289,47 @@ bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const text = msg.text;
 
-  /* ===== DELETE ===== */
   if (waitingForDelete[chatId]) {
-
     const id = parseInt(text);
     if (isNaN(id)) return;
 
     const { date } = getDateTime();
 
-    await sendToSheet({
-      action: "DELETE",
-      id: id,
-      date: date
-    });
+    await sendToSheet({ action:"DELETE", id, date });
 
-    /* 🔥 RAM GÜNCELLEME */
     if (dailyTransactions[date]) {
-
       const deleted = dailyTransactions[date].find(t => t.id === id);
 
       if (deleted) {
-
-        if (dailyData[date] && dailyData[date][deleted.provider]) {
+        if (dailyData[date][deleted.provider]) {
           dailyData[date][deleted.provider] -= Number(deleted.amount);
         }
 
         dailyTransactions[date] =
           dailyTransactions[date].filter(t => t.id !== id);
-
-        console.log("RAM'den silindi:", id);
       }
     }
 
-    await bot.sendMessage(chatId, "#" + id + " silindi ❌");
-
+    bot.sendMessage(chatId, "#" + id + " silindi ❌");
     waitingForDelete[chatId] = false;
     return;
   }
 
-  /* ===== ADD ===== */
   if (waitingForInput[chatId]?.active) {
 
     const parts = text.trim().split(" ");
 
     if (parts.length !== 2 || isNaN(parts[1])) {
-
-      if (!waitingForInput[chatId]) return;
-
-      waitingForInput[chatId].errorCount++;
-
-      if (waitingForInput[chatId].errorCount >= 2) {
-
-        await bot.sendMessage(chatId,
-          "❌ 2 kez hatalı giriş yaptın\n/start ile tekrar başlat"
-        );
-
-        waitingForInput[chatId] = null;
-        return;
-      }
-
-      await bot.sendMessage(chatId,
-        "⚠️ Hatalı format\nörnek: test1 1500"
-      );
-
-      return;
+      return bot.sendMessage(chatId,"⚠️ Format: test1 1000");
     }
 
     const username = parts[0];
     const amount = parseFloat(parts[1]);
 
     const groupName = normalizeText(msg.chat.title || "");
+    const providers = getProviders(groupName);
 
-    let provider = null;
-
-    for (let key in providerMap) {
-      if (groupName.includes(key)) {
-        provider = providerMap[key];
-        break;
-      }
-    }
-
-    if (!provider) {
-      return bot.sendMessage(chatId, "eşleşme yok");
-    }
+    if (!providers) return bot.sendMessage(chatId,"eşleşme yok");
 
     const { date, time } = getDateTime();
     const id = await getNextId(date);
@@ -416,14 +339,14 @@ bot.on("message", async (msg) => {
       dailyTransactions[date] = [];
     }
 
-    dailyData[date][provider] =
-      (dailyData[date][provider] || 0) + amount;
+    dailyData[date][providers.excel] =
+      (dailyData[date][providers.excel] || 0) + amount;
 
     dailyTransactions[date].push({
       id,
       username,
       amount,
-      provider
+      provider: providers.excel
     });
 
     await sendToSheet({
@@ -432,35 +355,16 @@ bot.on("message", async (msg) => {
       time,
       username,
       amount,
-      provider,
-      type: "EKLE"
+      provider: providers.excel,
+      type:"EKLE"
     });
 
-    await bot.sendMessage(
+    bot.sendMessage(
       chatId,
-      "#" + id + " | " + username + " " + amount + " TRY " + provider + " manuel eklendi ✅"
+      `#${id} | ${username} ${amount} TRY ${providers.short} manuel eklendi ✅`
     );
 
-    const ids = waitingForInput[chatId];
-
-    setTimeout(() => {
-
-      if (ids?.startMsgId)
-        bot.deleteMessage(chatId, ids.startMsgId).catch(()=>{});
-
-      if (ids?.panelMsgId)
-        bot.deleteMessage(chatId, ids.panelMsgId).catch(()=>{});
-
-      if (ids?.inputMsgId)
-        bot.deleteMessage(chatId, ids.inputMsgId).catch(()=>{});
-
-      if (ids?.userMsgId)
-        bot.deleteMessage(chatId, ids.userMsgId).catch(()=>{});
-
-    }, 4500);
-
     waitingForInput[chatId] = null;
-    return;
   }
 });
 
@@ -474,11 +378,12 @@ function sendDailyFinanceReport() {
   let total = 0;
   let text = `📊 Gün Sonu Finans Raporu - ${date}\n\n`;
 
-  Object.values(providerMap).forEach((provider) => {
-    const amount = dailyData[date]?.[provider] || 0;
+  Object.keys(providerMap).forEach(key => {
+    const name = providerExcelMap[key] || providerMap[key];
+    const val = dailyData[date]?.[name] || 0;
 
-    total += amount;
-    text += `${provider}: ${amount} TRY\n`;
+    total += val;
+    text += `${name}: ${val} TRY\n`;
   });
 
   text += `\n💰 Genel Toplam: ${total} TRY`;
