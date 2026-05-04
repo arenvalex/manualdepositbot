@@ -61,7 +61,7 @@ const providerExcelMap = {
   sahin: "Şahin",
   ezel: "Ezel Havale",
   atlas: "Atlas Banka Havalesi",
-  infinitypay: "Infinity Pay,
+  infinitypay: "Infinity Pay",
   garanti: "Güvenli Qr"
 };
 
