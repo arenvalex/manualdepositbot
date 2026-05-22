@@ -46,7 +46,7 @@ const providerMap = {
   easy: "Easy",
   dream: "Dream",
   atlas: "Atlas",
-  evapay: "Evapay",
+  EVA: "evapay",
   infinitypay: "Infinity Pay",
   manuel: "Manuel Test"
 };
