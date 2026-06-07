@@ -32,13 +32,13 @@ const allowedUsers = [
 /* ================= MAP ================= */
 
 const providerMap = {
-  sahin: "Şahin",
   jorpay: "Jorpay",
+  sahin: "Şahin",
+  easy: "Easy",
   master: "Master",
   fastpay: "Fastpay",
   garanti: "Garanti QR",
   cryptobox: "Cryptobox",
-  easy: "Easy",
   dream: "Dream",
   atlas: "Atlas",
   evapay: "Evapay",
