@@ -35,7 +35,6 @@ const providerMap = {
   sahin: "Şahin",
   jorpay: "Jorpay",
   master: "Master",
-  bizans: "Bizans",
   fastpay: "Fastpay",
   garanti: "Garanti QR",
   cryptobox: "Cryptobox",
