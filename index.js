@@ -333,8 +333,50 @@ bot.on("message", async (msg) => {
 
     const parts = text.trim().split(" ");
 
-    if (parts.length !== 2 || isNaN(parts[1])) {
-      return bot.sendMessage(chatId,"⚠️ Format: test1 1000");
+   if (parts.length !== 2 || isNaN(parts[1])) {
+
+  waitingForInput[chatId].errorCount++;
+
+  // 2 kez yanlış girildiyse işlemi iptal et
+  if (waitingForInput[chatId].errorCount >= 2) {
+
+    const cancelMsg = await bot.sendMessage(
+      chatId,
+      "❌ 2 kez hatalı giriş yapıldı.\nİşlem iptal edildi."
+    );
+
+    // Örnek mesajını sil
+    if (waitingForInput[chatId].inputMsgId) {
+      bot.deleteMessage(chatId, waitingForInput[chatId].inputMsgId).catch(() => {});
+    }
+
+    // Kullanıcının son hatalı mesajını sil
+    bot.deleteMessage(chatId, msg.message_id).catch(() => {});
+
+    // İptal mesajını 3 sn sonra sil
+    setTimeout(() => {
+      bot.deleteMessage(chatId, cancelMsg.message_id).catch(() => {});
+    }, 3000);
+
+    delete waitingForInput[chatId];
+    return;
+  }
+
+  // İlk hatada uyarı ver
+  const err = await bot.sendMessage(
+    chatId,
+    "⚠️ Hatalı format.\n\nÖrnek:\n`test1 1500`\n\n(1/2)",
+    { parse_mode: "Markdown" }
+  );
+
+  bot.deleteMessage(chatId, msg.message_id).catch(() => {});
+
+  setTimeout(() => {
+    bot.deleteMessage(chatId, err.message_id).catch(() => {});
+  }, 3000);
+
+  return;
+     
     }
 
     const username = parts[0];
